@@ -64,7 +64,8 @@ Voice connections always use your real IP address: their UDP traffic cannot go t
 ## Credits
 
 - [discord.js](https://github.com/discordjs/discord.js): the library this code is derived from (v13).
-  Licensed under the Apache License 2.0. Copyright 2015 - 2021 Noel Buechler, Copyright 2015 - 2021 Amish Shah.
+  Licensed under the Apache License 2.0 ([LICENSE-APACHE](LICENSE-APACHE)). Copyright 2015 - 2021 Noel Buechler,
+  Copyright 2015 - 2021 Amish Shah.
 - [discord.js-selfbot-v13](https://github.com/aiko-chan-ai/discord.js-selfbot-v13) by
   [aiko-chan-ai](https://github.com/aiko-chan-ai): the selfbot fork this project is based on.
   Licensed under the GNU General Public License v3.0. Copyright (C) 2022 aiko-chan-ai and discordjs.

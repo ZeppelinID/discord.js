@@ -10,12 +10,13 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.js\" \"typings/**/*.ts\"",
-    "build": "npm run lint:fix && npm run format",
+    "build": "npm run lint:fix && npm run format && npm run test:typings",
     "test:typings": "! tsc --noEmit --skipLibCheck false 2>&1 | grep '^typings/'"
   },
   "files": [
     "src",
-    "typings"
+    "typings",
+    "LICENSE-APACHE"
   ],
   "directories": {
     "lib": "src"

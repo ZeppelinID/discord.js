@@ -1,6 +1,6 @@
 'use strict';
 
-const { setInterval } = require('node:timers');
+const { setInterval, clearInterval } = require('node:timers');
 const { Collection } = require('@discordjs/collection');
 const Invite = require('./Invite');
 const User = require('./User');
@@ -15,15 +15,13 @@ const Util = require('../util/Util');
  */
 class ClientUser extends User {
   #packageName = null;
-  // eslint-disable-next-line no-unused-private-class-members -- kept only to start the interval
-  #intervalSamsungPresence = setInterval(
-    () => {
-      this.client.emit('debug', `[UPDATE] Samsung Presence: ${this.#packageName}`);
-      if (!this.#packageName) return;
-      this.setSamsungActivity(this.#packageName, 'UPDATE');
-    },
-    1000 * 60 * 10,
-  ).unref();
+  #samsungTimer = null;
+  // Registered in client._cleanups while the timer runs, so client.destroy() stops it too
+  #stopSamsungTimer = () => {
+    clearInterval(this.#samsungTimer);
+    this.#samsungTimer = null;
+    this.client._cleanups.delete(this.#stopSamsungTimer);
+  };
 
   _patch(data) {
     super._patch(data);
@@ -407,8 +405,25 @@ class ClientUser extends User {
         update: type,
       },
     });
-    if (type !== 'STOP') this.#packageName = packageName;
-    else this.#packageName = null;
+    if (type === 'STOP') {
+      this.#packageName = null;
+      this.#stopSamsungTimer();
+    } else {
+      this.#packageName = packageName;
+      // Keeps the activity alive with an UPDATE every 10 minutes; a failed refresh must not crash the process
+      if (!this.#samsungTimer) {
+        this.#samsungTimer = setInterval(
+          () => {
+            this.client.emit('debug', `[UPDATE] Samsung Presence: ${this.#packageName}`);
+            this.setSamsungActivity(this.#packageName, 'UPDATE').catch(error =>
+              this.client.emit('debug', `[UPDATE] Samsung Presence failed: ${error.message}`),
+            );
+          },
+          1000 * 60 * 10,
+        ).unref();
+        this.client._cleanups.add(this.#stopSamsungTimer);
+      }
+    }
     return this;
   }
 

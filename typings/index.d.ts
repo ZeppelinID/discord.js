@@ -1158,7 +1158,11 @@ export class Recorder<Ready extends boolean = boolean, T = any> extends EventEmi
   public userId: Snowflake;
   public feed(payload: RtpPacket | BufferResolvable): void;
   public on(event: 'ready' | 'closed', listener: (recorder: Recorder<true, T>) => void): this;
+  public on(event: 'error', listener: (error: Error) => void): this;
+  public on(event: 'debug', listener: (message: string) => void): this;
   public once(event: 'ready' | 'closed', listener: (recorder: Recorder<true, T>) => void): this;
+  public once(event: 'error', listener: (error: Error) => void): this;
+  public once(event: 'debug', listener: (message: string) => void): this;
   public destroy(): void;
 }
 
@@ -1887,8 +1891,6 @@ export class LimitedCollection<K, V> extends Collection<K, V> {
   /** @deprecated Use `Sweepers.filterByLifetime` instead */
   public static filterByLifetime<K, V>(options?: LifetimeFilterOptions<K, V>): SweepFilter<K, V>;
 }
-
-export type WrapBooleanCache<T extends boolean> = If<T, 'cached', CacheType>;
 
 export class Message<Cached extends boolean = boolean> extends Base {
   private readonly _cacheType: Cached;
@@ -5539,31 +5541,10 @@ export interface CommandInteractionOption<Cached extends CacheType = CacheType> 
   attachment?: MessageAttachment;
 }
 
-export interface CommandInteractionResolvedData<Cached extends CacheType = CacheType> {
-  users?: Collection<Snowflake, User>;
-  members?: Collection<Snowflake, CacheTypeReducer<Cached, GuildMember, APIInteractionDataResolvedGuildMember>>;
-  roles?: Collection<Snowflake, CacheTypeReducer<Cached, Role, APIRole>>;
-  channels?: Collection<Snowflake, CacheTypeReducer<Cached, AnyChannel, APIInteractionDataResolvedChannel>>;
-  messages?: Collection<Snowflake, CacheTypeReducer<Cached, Message, APIMessage>>;
-  attachments?: Collection<Snowflake, MessageAttachment>;
-}
-
 export interface ConstantsClientApplicationAssetTypes {
   SMALL: 1;
   BIG: 2;
 }
-
-export type AutocompleteFocusedOption = Pick<CommandInteractionOption, 'name'> & {
-  focused: true;
-  type:
-    | 'STRING'
-    | 'INTEGER'
-    | 'NUMBER'
-    | ApplicationCommandOptionTypes.STRING
-    | ApplicationCommandOptionTypes.INTEGER
-    | ApplicationCommandOptionTypes.NUMBER;
-  value: string;
-};
 
 export interface ConstantsColors {
   DEFAULT: 0x000000;
@@ -6515,26 +6496,9 @@ export interface ImageURLOptions extends Omit<StaticImageURLOptions, 'format'> {
 
 export type IntegrationType = 'twitch' | 'youtube' | 'discord' | 'guild_subscription';
 
-export interface InteractionDeferReplyOptions {
-  ephemeral?: boolean;
-  fetchReply?: boolean;
-}
-
-export type InteractionDeferUpdateOptions = Omit<InteractionDeferReplyOptions, 'ephemeral'>;
-
-export interface InteractionReplyOptions extends Omit<WebhookMessageOptions, 'username' | 'avatarURL' | 'flags'> {
-  ephemeral?: boolean;
-  fetchReply?: boolean;
-  flags?: BitFieldResolvable<'SUPPRESS_EMBEDS' | 'EPHEMERAL', number>;
-}
-
 export type InteractionResponseType = keyof typeof InteractionResponseTypes;
 
 export type InteractionType = keyof typeof InteractionTypes;
-
-export interface InteractionUpdateOptions extends MessageEditOptions {
-  fetchReply?: boolean;
-}
 
 export type IntentsString =
   | 'GUILDS'
@@ -6669,11 +6633,7 @@ export type MessageComponentOptions =
 
 export type MessageComponentType = keyof typeof MessageComponentTypes;
 
-export type MessageComponentInteractableType = keyof typeof MessageComponentInteractables;
-
 export type MessageComponentTypeResolvable = MessageComponentType | MessageComponentTypes;
-
-export type MessageComponentInteractableResolvable = MessageComponentInteractableType | MessageComponentInteractables;
 
 export type GuildForumThreadMessageCreateOptions = Omit<MessageOptions, 'poll'> &
   Pick<MessageOptions, 'flags' | 'stickers'>;
@@ -6922,18 +6882,6 @@ export interface OverwriteData {
 export type OverwriteResolvable = PermissionOverwrites | OverwriteData;
 
 export type OverwriteType = 'member' | 'role';
-
-export interface PartialModalActionRow {
-  type: MessageComponentType;
-  components: PartialTextInputData[];
-}
-
-export interface PartialTextInputData {
-  value: string;
-  // TODO: use dapi types
-  type: MessageComponentType;
-  customId: string;
-}
 
 export type PermissionFlags = Record<PermissionString, bigint>;
 
@@ -7458,9 +7406,6 @@ export type WebhookEditMessageOptions = Pick<
   WebhookMessageOptions,
   'content' | 'embeds' | 'files' | 'allowedMentions' | 'components' | 'attachments' | 'threadId'
 >;
-export interface InteractionEditReplyOptions extends WebhookEditMessageOptions {
-  message?: MessageResolvable | '@original';
-}
 
 export interface WebhookFetchMessageOptions {
   cache?: boolean;
@@ -7620,3 +7565,17 @@ export type InternalDiscordGatewayAdapterCreator = (
 
 // Usable as types only: these classes are not exported at runtime
 export type { StreamConnection, StreamConnectionReadonly, VolumeInterface };
+
+// Exported as `WebSocket` (src/WebSocket.js); a different local name because `WebSocket` is the `ws` import above
+declare const djsWebSocket: {
+  WebSocket: typeof WebSocket;
+  encoding: 'json' | 'etf';
+  pack(data: unknown): string | Buffer;
+  unpack(data: string | Buffer | ArrayBuffer, type?: 'json'): any;
+  create(gateway: string, query?: Record<string, unknown>, ...args: unknown[]): WebSocket;
+  CONNECTING: number;
+  OPEN: number;
+  CLOSING: number;
+  CLOSED: number;
+};
+export { djsWebSocket as WebSocket };

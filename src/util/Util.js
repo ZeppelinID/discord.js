@@ -867,22 +867,11 @@ class Util extends null {
     return attachments;
   }
 
-  static uploadFile(data, url, client) {
-    return new Promise((resolve, reject) => {
-      // The client's impit carries its proxy; the shared fallback has none
-      (client?.rest.fetch ?? fetch)(url, {
-        method: 'PUT',
-        body: data,
-      })
-        .then(res => {
-          if (res.ok) {
-            resolve(res);
-          } else {
-            reject(res);
-          }
-        })
-        .catch(reject);
-    });
+  static async uploadFile(data, url, client) {
+    // The client's impit carries its proxy; the shared fallback has none
+    const res = await (client?.rest.fetch ?? fetch)(url, { method: 'PUT', body: data });
+    if (!res.ok) throw Object.assign(new DiscordError('ATTACHMENT_UPLOAD_FAILED', res.status), { cause: res });
+    return res;
   }
 
   /**

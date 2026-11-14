@@ -118,6 +118,13 @@ class Recorder extends EventEmitter {
      * @type {ChildProcessWithoutNullStreams}
      */
     this.stream = stream;
+    // A missing ffmpeg (ENOENT) arrives here; unhandled it would crash the whole process, so it goes to
+    // 'error' when someone listens and to 'debug' otherwise (like Receiver does with packet errors)
+    stream.once('error', error => {
+      this.destroy();
+      if (this.listenerCount('error')) this.emit('error', error);
+      else this.emit('debug', `FFmpeg failed to start: ${error.message}`);
+    });
     this.stream.stdin.write(sdpData);
     this.stream.stdin.end();
     this.stream.stderr.once('data', data => {

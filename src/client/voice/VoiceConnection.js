@@ -326,7 +326,8 @@ class VoiceConnection extends EventEmitter {
    * @private
    */
   setTokenAndEndpoint(token, endpoint) {
-    this.emit('debug', `Token "${token}" and endpoint "${endpoint}"`);
+    // The token itself stays out of debug logs, which people often paste publicly
+    this.emit('debug', `Received voice token (${token ? 'present' : 'missing'}) and endpoint "${endpoint}"`);
     if (!endpoint) {
       // Signifies awaiting endpoint stage
       return;

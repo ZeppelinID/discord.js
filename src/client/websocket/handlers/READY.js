@@ -109,13 +109,14 @@ module.exports = (client, { d: data }, shard) => {
   Promise.all(
     data.private_channels.map(async (c, index) => {
       if (client.options.DMChannelVoiceStatusSync < 1) return;
+      // Waiting before sending is what spaces the packets out
+      await client.sleep(client.options.DMChannelVoiceStatusSync * index);
       client.ws.broadcast({
         op: Opcodes.DM_UPDATE,
         d: {
           channel_id: c.id,
         },
       });
-      await client.sleep(client.options.DMChannelVoiceStatusSync * index);
     }),
   ).then(() => shard.checkReady());
 };

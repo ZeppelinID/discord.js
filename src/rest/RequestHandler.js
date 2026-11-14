@@ -441,7 +441,8 @@ class RequestHandler {
     if (res.status >= 500 && res.status < 600) {
       // Retry the specified number of times for possible serverside issues
       if (request.retries === this.manager.client.options.retryLimit) {
-        throw new HTTPError(res.statusText, res.constructor.name, res.status, request);
+        // A literal, so the name stays 'Response' as it was with undici (impit's class is ImpitResponse)
+        throw new HTTPError(res.statusText, 'Response', res.status, request);
       }
 
       request.retries++;
