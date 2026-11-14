@@ -3,7 +3,6 @@ import {
   bold,
   channelMention,
   codeBlock,
-  ContextMenuCommandBuilder,
   formatEmoji,
   hideLinkEmbed,
   hyperlink,
@@ -11,7 +10,6 @@ import {
   italic,
   quote,
   roleMention,
-  SlashCommandBuilder,
   spoiler,
   strikethrough,
   time,
@@ -19,7 +17,7 @@ import {
   TimestampStylesString,
   underscore,
   userMention,
-} from '@discordjs/builders';
+} from '@discordjs/formatters';
 import { Collection } from '@discordjs/collection';
 import {
   APIActionRowComponent,
@@ -3781,8 +3779,11 @@ export abstract class CachedManager<K, Holds, R> extends DataManager<K, Holds, R
   private _add(data: unknown, cache?: boolean, { id, extras }?: { id: K; extras: unknown[] }): Holds;
 }
 
+// Builders (e.g. from @discordjs/builders) are accepted through their toJSON(), like the runtime check
 export type ApplicationCommandDataResolvable =
-  ApplicationCommandData | RESTPostAPIApplicationCommandsJSONBody | SlashCommandBuilder | ContextMenuCommandBuilder;
+  | ApplicationCommandData
+  | RESTPostAPIApplicationCommandsJSONBody
+  | { toJSON(): RESTPostAPIApplicationCommandsJSONBody };
 
 export class ApplicationCommandManager<
   ApplicationCommandScope = ApplicationCommand<{ guild: GuildResolvable }>,

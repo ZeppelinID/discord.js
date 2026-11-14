@@ -1,6 +1,6 @@
 {
   "name": "@zeppelinid/discord.js",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "description": "An unofficial discord.js fork for creating selfbots",
   "main": "./src/index.js",
   "types": "./typings/index.d.ts",
@@ -23,7 +23,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ZeppelinID/discord.js"
+    "url": "git+https://github.com/ZeppelinID/discord.js.git"
   },
   "keywords": [
     "discord.js",
@@ -41,12 +41,13 @@
   "bugs": {
     "url": "https://github.com/ZeppelinID/discord.js/issues"
   },
-  "homepage": "https://github.com/ZeppelinID/discord.js#README",
+  "homepage": "https://github.com/ZeppelinID/discord.js#readme",
   "dependencies": {
-    "@discordjs/builders": "^1.15.0",
     "@discordjs/collection": "^2.1.1",
+    "@discordjs/formatters": "^0.6.2",
     "@sapphire/async-queue": "^1.5.5",
     "@sapphire/shapeshift": "^5.0.0",
+    "@types/ws": "^8.18.2",
     "discord-api-types": "^0.38.59",
     "impit": "^0.14.9",
     "otplib": "^13.6.0",
@@ -62,7 +63,6 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.6",
-    "@types/ws": "^8.18.2",
     "eslint": "^10.15.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.7",

@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Lint, typings and package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 26
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Formatting
+        run: npx prettier --check "src/**/*.js" "typings/**/*.ts"
+
+      - name: Typings
+        run: npm run test:typings
+
+      - name: Package loads
+        run: node -e "const { Client, version } = require('./'); new Client().destroy(); console.log('Loaded v' + version)"
+
+      - name: Package contents
+        run: npm pack --dry-run
