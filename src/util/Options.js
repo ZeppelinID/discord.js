@@ -121,29 +121,19 @@ const Intents = require('./Intents');
 /**
  * WebSocket options (these are left as snake_case to match the API)
  * @typedef {Object} WebsocketOptions
- * @property {AgentOptions} [agent={}] HTTPS Agent options (WS Proxy)
+ * @property {Object} [agent={}] Gateway proxy (also used by QR login): a `ProxyAgent` from the `proxy-agent`
+ * package. Anything else is ignored
  * @property {boolean} [compress=false] Whether to compress data sent on the connection
  * @property {WebSocketProperties} [properties] Properties to identify the client with
- */
-
-/**
- * HTTPS Agent options.
- * @typedef {Object} AgentOptions
- * @see {@link https://nodejs.org/api/https.html#https_class_https_agent}
- * @see {@link https://nodejs.org/api/http.html#http_new_agent_options}
- */
-
-/**
- * ProxyAgent options.
- * @typedef {Object} ProxyAgentOptions
- * @see {@link https://github.com/nodejs/undici/blob/main/docs/docs/api/ProxyAgent.md}
  */
 
 /**
  * HTTP options
  * @typedef {Object} HTTPOptions
  * @property {number} [version=9] API version to use
- * @property {ProxyAgentOptions} [agent={}] ProxyAgent options
+ * @property {string|URL|Object} [agent={}] Proxy for REST API requests, passed to impit as `proxyUrl`:
+ * a URL string (`http://user:pass@host:port`, `socks5://host:port`), a URL, or `{ uri }`.
+ * Proxy credentials go in the URL (the undici `token` option is not supported)
  * @property {string} [api='https://discord.com/api'] Base URL of the API
  * @property {string} [cdn='https://cdn.discordapp.com'] Base URL of the CDN
  * @property {string} [invite='https://discord.gg'] Base URL of invites

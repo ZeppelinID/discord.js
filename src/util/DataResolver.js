@@ -59,14 +59,15 @@ class DataResolver extends null {
   /**
    * Resolves a Base64Resolvable, a string, or a BufferResolvable to a Base 64 image.
    * @param {BufferResolvable|Base64Resolvable} image The image to be resolved
+   * @param {BaseClient} [client] Client whose proxy is used to download URLs
    * @returns {Promise<?string>}
    */
-  static async resolveImage(image) {
+  static async resolveImage(image, client) {
     if (!image) return null;
     if (typeof image === 'string' && image.startsWith('data:')) {
       return image;
     }
-    const file = await this.resolveFileAsBuffer(image);
+    const file = await this.resolveFileAsBuffer(image, client);
     return DataResolver.resolveBase64(file);
   }
 
@@ -104,13 +105,14 @@ class DataResolver extends null {
   /**
    * Resolves a BufferResolvable to a Buffer or a Stream.
    * @param {BufferResolvable|Stream} resource The buffer or stream resolvable to resolve
+   * @param {BaseClient} [client] Client whose proxy is used to download URLs
    * @returns {Promise<Buffer|Stream>}
    */
-  static async resolveFile(resource) {
+  static async resolveFile(resource, client) {
     if (Buffer.isBuffer(resource) || resource instanceof stream.Readable) return resource;
     if (typeof resource === 'string') {
       if (/^https?:\/\//.test(resource)) {
-        const res = await fetch(resource);
+        const res = await (client?.rest.fetch ?? fetch)(resource);
         if (res.ok) return res.body;
         else throw new DiscordError('FILE_NOT_FOUND', resource);
       }
@@ -131,10 +133,11 @@ class DataResolver extends null {
   /**
    * Resolves a BufferResolvable to a Buffer.
    * @param {BufferResolvable|Stream} resource The buffer or stream resolvable to resolve
+   * @param {BaseClient} [client] Client whose proxy is used to download URLs
    * @returns {Promise<Buffer>}
    */
-  static async resolveFileAsBuffer(resource) {
-    const file = await this.resolveFile(resource);
+  static async resolveFileAsBuffer(resource, client) {
+    const file = await this.resolveFile(resource, client);
     if (Buffer.isBuffer(file)) return file;
 
     const buffers = [];

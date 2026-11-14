@@ -68,7 +68,7 @@ import {
 } from 'discord-api-types/v10';
 import { ChildProcess, ChildProcessWithoutNullStreams } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import { AgentOptions } from 'node:https';
+import { Agent } from 'node:http';
 import { Readable, Writable, Stream } from 'node:stream';
 import { MessagePort, Worker } from 'node:worker_threads';
 import { CookieJar } from 'tough-cookie';
@@ -1471,9 +1471,12 @@ export class DataResolver extends null {
   private constructor();
   public static resolveBase64(data: Base64Resolvable): string;
   public static resolveCode(data: string, regx: RegExp): string;
-  public static resolveFile(resource: BufferResolvable | Stream): Promise<Buffer | Stream>;
-  public static resolveFileAsBuffer(resource: BufferResolvable | Stream): Promise<Buffer>;
-  public static resolveImage(resource: BufferResolvable | Base64Resolvable): Promise<string | null>;
+  public static resolveFile(resource: BufferResolvable | Stream, client?: BaseClient): Promise<Buffer | Stream>;
+  public static resolveFileAsBuffer(resource: BufferResolvable | Stream, client?: BaseClient): Promise<Buffer>;
+  public static resolveImage(
+    resource: BufferResolvable | Base64Resolvable,
+    client?: BaseClient,
+  ): Promise<string | null>;
   public static resolveInviteCode(data: InviteResolvable): string;
   public static resolveGuildTemplateCode(data: GuildTemplateResolvable): string;
 }
@@ -2724,6 +2727,7 @@ export class MessagePayload {
   ): MessagePayload;
   public static resolveFile(
     fileLike: BufferResolvable | Stream | FileOptions | MessageAttachment,
+    client?: BaseClient,
   ): Promise<HTTPAttachmentData>;
 
   public makeContent(): string | undefined;
@@ -7060,7 +7064,7 @@ export interface HTTPErrorData {
 }
 
 export interface HTTPOptions {
-  agent?: string | URL | { uri: string; [key: string]: any } | AgentOptions;
+  agent?: string | URL | { uri: string };
   api?: string;
   version?: number;
   host?: string;
@@ -8078,7 +8082,8 @@ export interface WebhookMessageOptions extends Omit<MessageOptions, 'nonce' | 'r
 export type WebhookType = keyof typeof WebhookTypes;
 
 export interface WebSocketOptions {
-  agent?: Omit<AgentOptions, 'keepAlive'>;
+  /** A `ProxyAgent` from the `proxy-agent` package (the shape `Util.verifyProxyAgent` accepts); anything else is ignored */
+  agent?: Agent & { httpAgent: Agent; httpsAgent: Agent };
   compress?: boolean;
   properties?: WebSocketProperties;
 }

@@ -177,7 +177,7 @@ class ClientUser extends User {
    *   .catch(console.error);
    */
   async setAvatar(avatar) {
-    avatar = avatar && (await DataResolver.resolveImage(avatar));
+    avatar = avatar && (await DataResolver.resolveImage(avatar, this.client));
     return this.edit({ avatar });
   }
 
@@ -281,7 +281,7 @@ class ClientUser extends User {
    *   .catch(console.error);
    */
   async setBanner(banner) {
-    banner = banner && (await DataResolver.resolveImage(banner));
+    banner = banner && (await DataResolver.resolveImage(banner, this.client));
     return this.edit({ banner });
   }
 

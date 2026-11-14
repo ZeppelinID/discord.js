@@ -73,7 +73,7 @@ class GuildForumThreadManager extends ThreadManager {
     // New API
     const attachments = await getUploadURL(this.client, this.channel.id, files);
     const requestPromises = attachments.map(async attachment => {
-      await uploadFile(files[attachment.id].file, attachment.upload_url);
+      await uploadFile(files[attachment.id].file, attachment.upload_url, this.client);
       return {
         id: attachment.id,
         filename: files[attachment.id].name,

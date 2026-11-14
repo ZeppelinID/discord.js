@@ -65,8 +65,9 @@ function fetch(resource, init) {
 }
 
 /**
- * Helper to extract proxy URL string from client.http.agent options.
- * Supports string, URL, or { uri } objects (same as previous Util.checkUndiciProxyAgent).
+ * Extracts the impit `proxyUrl` from `client.options.http.agent`.
+ * Accepts a URL string, a URL, or `{ uri }` (the shape of the old undici ProxyAgent options).
+ * Anything else (e.g. a `proxy-agent` instance) means no REST proxy.
  * @param {string|URL|Object} data Proxy data
  * @returns {string|undefined}
  */
@@ -75,9 +76,6 @@ function getProxyUrl(data) {
   if (typeof data === 'string' && data.length > 0) return data;
   if (data instanceof URL) return data.toString();
   if (typeof data === 'object' && typeof data.uri === 'string' && data.uri.length > 0) return data.uri;
-  // Also support { proxyUrl } shape
-  if (typeof data === 'object' && typeof data.proxyUrl === 'string') return data.proxyUrl;
-  // If it's an object with httpAgent/httpsAgent (ProxyAgent instance), can't extract URL - return undefined
   return undefined;
 }
 

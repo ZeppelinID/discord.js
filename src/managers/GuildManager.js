@@ -182,7 +182,7 @@ class GuildManager extends CachedManager {
       verificationLevel,
     } = {},
   ) {
-    icon = await DataResolver.resolveImage(icon);
+    icon = await DataResolver.resolveImage(icon, this.client);
     if (typeof verificationLevel === 'string') {
       verificationLevel = VerificationLevels[verificationLevel];
     }

@@ -198,7 +198,7 @@ class TextBasedChannel {
     // New API
     const attachments = await Util.getUploadURL(this.client, this.id, files);
     const requestPromises = attachments.map(async attachment => {
-      await Util.uploadFile(files[attachment.id].file, attachment.upload_url);
+      await Util.uploadFile(files[attachment.id].file, attachment.upload_url, this.client);
       return {
         id: attachment.id,
         filename: files[attachment.id].name,
@@ -554,12 +554,12 @@ function parseChoices(parent, list_choices, value) {
 }
 
 async function addDataFromAttachment(value, client, channelId, attachments) {
-  value = await MessagePayload.resolveFile(value);
+  value = await MessagePayload.resolveFile(value, client);
   if (!value?.file) {
     throw new TypeError('The attachment data must be a BufferResolvable or Stream or FileOptions of MessageAttachment');
   }
   const data = await Util.getUploadURL(client, channelId, [value]);
-  await Util.uploadFile(value.file, data[0].upload_url);
+  await Util.uploadFile(value.file, data[0].upload_url, client);
   const id = attachments.length;
   attachments.push({
     id,

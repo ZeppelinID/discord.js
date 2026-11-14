@@ -50,7 +50,7 @@ class GuildEmojiManager extends BaseGuildEmojiManager {
    *   .catch(console.error);
    */
   async create(attachment, name, { roles, reason } = {}) {
-    attachment = await DataResolver.resolveImage(attachment);
+    attachment = await DataResolver.resolveImage(attachment, this.client);
     if (!attachment) throw new TypeError('REQ_RESOURCE_TYPE');
 
     const data = { image: attachment, name };

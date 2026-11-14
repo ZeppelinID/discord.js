@@ -196,7 +196,9 @@ class RoleManager extends CachedManager {
     if (typeof permissions !== 'undefined') permissions = new Permissions(permissions);
     if (icon) {
       const guildEmojiURL = this.guild.emojis.resolve(icon)?.url;
-      icon = guildEmojiURL ? await DataResolver.resolveImage(guildEmojiURL) : await DataResolver.resolveImage(icon);
+      icon = guildEmojiURL
+        ? await DataResolver.resolveImage(guildEmojiURL, this.client)
+        : await DataResolver.resolveImage(icon, this.client);
       if (typeof icon !== 'string') icon = undefined;
     }
 
@@ -261,7 +263,9 @@ class RoleManager extends CachedManager {
     let icon = data.icon;
     if (icon) {
       const guildEmojiURL = this.guild.emojis.resolve(icon)?.url;
-      icon = guildEmojiURL ? await DataResolver.resolveImage(guildEmojiURL) : await DataResolver.resolveImage(icon);
+      icon = guildEmojiURL
+        ? await DataResolver.resolveImage(guildEmojiURL, this.client)
+        : await DataResolver.resolveImage(icon, this.client);
       if (typeof icon !== 'string') icon = undefined;
     }
 

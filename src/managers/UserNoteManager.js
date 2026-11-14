@@ -36,7 +36,7 @@ class UserNoteManager extends BaseManager {
    * @returns {Promise<string>}
    */
   async fetch(user, { cache = true, force = false } = {}) {
-    const id = this.resolveId(user);
+    const id = this.client.users.resolveId(user);
     if (!force) {
       const existing = this.cache.get(id);
       if (existing) return existing;

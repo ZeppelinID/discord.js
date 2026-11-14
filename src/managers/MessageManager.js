@@ -136,7 +136,7 @@ class MessageManager extends CachedManager {
     // New API
     const attachments = await Util.getUploadURL(this.client, this.channel.id, files);
     const requestPromises = attachments.map(async attachment => {
-      await Util.uploadFile(files[attachment.id].file, attachment.upload_url);
+      await Util.uploadFile(files[attachment.id].file, attachment.upload_url, this.client);
       return {
         id: attachment.id,
         filename: files[attachment.id].name,

@@ -867,9 +867,10 @@ class Util extends null {
     return attachments;
   }
 
-  static uploadFile(data, url) {
+  static uploadFile(data, url, client) {
     return new Promise((resolve, reject) => {
-      fetch(url, {
+      // The client's impit carries its proxy; the shared fallback has none
+      (client?.rest.fetch ?? fetch)(url, {
         method: 'PUT',
         body: data,
       })
@@ -904,21 +905,6 @@ class Util extends null {
    */
   static verifyProxyAgent(object) {
     return typeof object == 'object' && object.httpAgent instanceof Agent && object.httpsAgent instanceof Agent;
-  }
-
-  static checkUndiciProxyAgent(data) {
-    if (typeof data === 'string') {
-      return {
-        uri: data,
-      };
-    }
-    if (data instanceof URL) {
-      return {
-        uri: data.toString(),
-      };
-    }
-    if (typeof data === 'object' && typeof data.uri === 'string') return data;
-    return false;
   }
 
   static createPromiseInteraction(client, nonce, timeoutMs = 5_000, isHandlerDeferUpdate = false, parent) {

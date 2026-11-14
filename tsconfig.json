@@ -14,7 +14,7 @@
         "strict": true,
         "useUnknownInCatchVariables": true,
         // Modules
-        // TS 7 removed moduleResolution "node" (node10); NodeNext also works with tsd's bundled TS 5.9
+        // TS 7 removed moduleResolution "node" (node10)
         "module": "NodeNext",
         "resolveJsonModule": true,
         // Emit

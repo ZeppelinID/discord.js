@@ -279,16 +279,19 @@ class MessagePayload {
   async resolveFiles() {
     if (this.files) return this;
 
-    this.files = await Promise.all(this.options.files?.map(file => this.constructor.resolveFile(file)) ?? []);
+    this.files = await Promise.all(
+      this.options.files?.map(file => this.constructor.resolveFile(file, this.target.client)) ?? [],
+    );
     return this;
   }
 
   /**
    * Resolves a single file into an object sendable to the API.
    * @param {BufferResolvable|Stream|FileOptions|MessageAttachment} fileLike Something that could be resolved to a file
+   * @param {BaseClient} [client] Client whose proxy is used to download URLs
    * @returns {Promise<MessageFile>}
    */
-  static async resolveFile(fileLike) {
+  static async resolveFile(fileLike, client) {
     let attachment;
     let name;
 
@@ -314,7 +317,7 @@ class MessagePayload {
       name = fileLike.name ?? findName(attachment);
     }
 
-    const resource = await DataResolver.resolveFile(attachment);
+    const resource = await DataResolver.resolveFile(attachment, client);
     return {
       attachment,
       name,

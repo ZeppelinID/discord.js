@@ -195,7 +195,7 @@ class GroupDMChannel extends Channel {
     const _data = {};
     if ('name' in data) _data.name = data.name?.trim() ?? null;
     if (typeof data.icon !== 'undefined') {
-      _data.icon = await DataResolver.resolveImage(data.icon);
+      _data.icon = await DataResolver.resolveImage(data.icon, this.client);
     }
     if ('owner' in data) {
       _data.owner = data.owner;

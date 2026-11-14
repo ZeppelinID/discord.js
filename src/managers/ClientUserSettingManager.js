@@ -349,9 +349,10 @@ class ClientUserSettingManager extends BaseManager {
    * @returns {Promise}
    */
   addRestrictedGuild(guildId) {
+    guildId = this.client.guilds.resolveId(guildId);
     const temp = Object.assign(
       [],
-      this.disableDMfromServer.map((v, k) => k),
+      this.disableDMfromGuilds.map((v, k) => k),
     );
     if (temp.includes(guildId)) throw new Error('Guild is already restricted');
     temp.push(guildId);
@@ -364,8 +365,10 @@ class ClientUserSettingManager extends BaseManager {
    * @returns {Promise}
    */
   removeRestrictedGuild(guildId) {
-    if (!this.disableDMfromServer.delete(guildId)) throw new Error('Guild is already restricted');
-    return this.edit({ restricted_guilds: this.disableDMfromServer.map((v, k) => k) });
+    guildId = this.client.guilds.resolveId(guildId);
+    // Leave the cache alone until the PATCH succeeds; edit() re-patches it from the response
+    if (!this.disableDMfromGuilds.has(guildId)) throw new Error('Guild is not restricted');
+    return this.edit({ restricted_guilds: [...this.disableDMfromGuilds.keys()].filter(id => id !== guildId) });
   }
 }
 

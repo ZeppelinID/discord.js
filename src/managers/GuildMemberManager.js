@@ -295,10 +295,10 @@ class GuildMemberManager extends CachedManager {
 
     // Avatar, banner, bio
     if (typeof _data.avatar !== 'undefined') {
-      _data.avatar = await DataResolver.resolveImage(_data.avatar);
+      _data.avatar = await DataResolver.resolveImage(_data.avatar, this.client);
     }
     if (typeof _data.banner !== 'undefined') {
-      _data.banner = await DataResolver.resolveImage(_data.banner);
+      _data.banner = await DataResolver.resolveImage(_data.banner, this.client);
     }
 
     let endpoint = this.client.api.guilds(this.guild.id);

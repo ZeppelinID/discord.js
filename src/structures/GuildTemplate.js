@@ -117,7 +117,7 @@ class GuildTemplate extends Base {
     const data = await client.api.guilds.templates(this.code).post({
       data: {
         name,
-        icon: await DataResolver.resolveImage(icon),
+        icon: await DataResolver.resolveImage(icon, this.client),
       },
     });
 

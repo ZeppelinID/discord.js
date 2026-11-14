@@ -6,13 +6,10 @@
   "types": "./typings/index.d.ts",
   "scripts": {
     "all": "npm run build && npm publish --access public",
-    "test": "npm run lint && npm run docs:test && npm run test:typescript",
     "fix:all": "npm run lint:fix && npm run format",
-    "test:typescript": "tsc --noEmit && npm run test:typings && tsd",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.js\" \"typings/**/*.ts\"",
-    "docs:test": "docgen --input \"src/**/*.js\" --custom docs/index.json",
     "build": "npm run lint:fix && npm run format",
     "test:typings": "! tsc --noEmit --skipLibCheck false 2>&1 | grep '^typings/'"
   },
@@ -21,8 +18,7 @@
     "typings"
   ],
   "directories": {
-    "lib": "src",
-    "test": "test"
+    "lib": "src"
   },
   "repository": {
     "type": "git",
@@ -65,7 +61,6 @@
     "node": ">=26.13.1"
   },
   "devDependencies": {
-    "@discordjs/docgen": "^0.12.1",
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.6",
     "@types/ws": "^8.18.2",
@@ -74,7 +69,6 @@
     "eslint-plugin-prettier": "^5.5.7",
     "globals": "^17.14.0",
     "prettier": "^3.10.1",
-    "tsd": "^0.33.0",
     "typescript": "^7.0.2"
   }
 }

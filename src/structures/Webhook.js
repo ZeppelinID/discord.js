@@ -261,7 +261,7 @@ class Webhook {
    */
   async edit({ name = this.name, avatar, channel }, reason) {
     if (avatar && !(typeof avatar === 'string' && avatar.startsWith('data:'))) {
-      avatar = await DataResolver.resolveImage(avatar);
+      avatar = await DataResolver.resolveImage(avatar, this.client);
     }
     channel &&= channel.id ?? channel;
     const data = await this.client.api.webhooks(this.id, channel ? undefined : this.token).patch({

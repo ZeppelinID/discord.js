@@ -57,7 +57,7 @@ class GuildStickerManager extends CachedManager {
    *   .catch(console.error);
    */
   async create(file, name, tags, { description, reason } = {}) {
-    const resolvedFile = await MessagePayload.resolveFile(file);
+    const resolvedFile = await MessagePayload.resolveFile(file, this.client);
     if (!resolvedFile) throw new TypeError('REQ_RESOURCE_TYPE');
     file = { ...resolvedFile, key: 'file' };
 

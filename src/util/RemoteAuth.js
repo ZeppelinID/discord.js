@@ -9,6 +9,7 @@ const WebSocket = require('ws');
 const { UserAgent } = require('./Constants');
 const { fetch } = require('./FetchWrapper');
 const Options = require('./Options');
+const Util = require('./Util');
 
 const defaultClientOptions = Options.createDefault();
 
@@ -48,6 +49,7 @@ const Event = {
  * @abstract
  */
 class DiscordAuthWebsocket extends EventEmitter {
+  #client = null;
   #ws = null;
   #heartbeatInterval = null;
   #expire = null;
@@ -87,11 +89,14 @@ class DiscordAuthWebsocket extends EventEmitter {
   }
 
   #createWebSocket(url) {
+    const agent = this.#client?.options.ws.agent;
     this.#ws = new WebSocket(url, {
       headers: {
         Origin: 'https://discord.com',
         'User-Agent': UserAgent,
       },
+      // Same gateway proxy rule as WebSocketShard
+      agent: Util.verifyProxyAgent(agent) ? agent : undefined,
     });
     this.#handleWebSocket();
   }
@@ -115,6 +120,11 @@ class DiscordAuthWebsocket extends EventEmitter {
     });
     this.#ws.on('close', () => {
       this.emit(Event.DEBUG, '[WS] Connection closed');
+      /**
+       * Emitted whenever a connection is closed.
+       * @event DiscordAuthWebsocket#closed
+       */
+      this.emit(Event.CLOSED);
     });
     this.#ws.on('message', this.#handleMessage.bind(this));
   }
@@ -274,9 +284,13 @@ class DiscordAuthWebsocket extends EventEmitter {
   }
 
   #awaitLogin(client) {
-    return new Promise(r => {
-      this.once(Event.FINISH, token => {
-        r(client.login(token));
+    return new Promise((resolve, reject) => {
+      this.once(Event.FINISH, token => resolve(client.login(token)));
+      this.once(Event.CANCEL, () => reject(new Error('QR login was cancelled')));
+      this.once(Event.ERROR, reject);
+      // Once the ticket has arrived the token request decides; the gateway may close before it finishes
+      this.once(Event.CLOSED, () => {
+        if (!this.#ticket) reject(new Error('QR login connection closed before the login was confirmed'));
       });
     });
   }
@@ -287,6 +301,7 @@ class DiscordAuthWebsocket extends EventEmitter {
    * @returns {Promise<void>}
    */
   connect(client) {
+    this.#client = client;
     this.#createWebSocket(wsURL);
     if (client) {
       return this.#awaitLogin(client);
@@ -300,14 +315,9 @@ class DiscordAuthWebsocket extends EventEmitter {
    * @returns {void}
    */
   destroy() {
-    if (!this.ws) return;
-    this.ws.close();
+    if (!this.#ws) return;
+    this.#ws.close();
     this.emit(Event.DEBUG, 'WebSocket closed.');
-    /**
-     * Emitted whenever a connection is closed.
-     * @event DiscordAuthWebsocket#closed
-     */
-    this.emit(Event.CLOSED);
   }
 
   /**
@@ -325,7 +335,7 @@ class DiscordAuthWebsocket extends EventEmitter {
   }
 
   #findRealToken() {
-    return fetch(`https://discord.com/api/v9/users/@me/remote-auth/login`, {
+    return (this.#client?.rest.fetch ?? fetch)(`https://discord.com/api/v9/users/@me/remote-auth/login`, {
       method: 'POST',
       headers: {
         Accept: '*/*',
@@ -350,9 +360,9 @@ class DiscordAuthWebsocket extends EventEmitter {
     })
       .then(r => r.json())
       .then(res => {
-        if (res.encrypted_token) {
-          this.token = this.#decryptPayload(res.encrypted_token).toString();
-        }
+        // No token means captcha, expired ticket, etc.: surface Discord's answer instead of logging in with ''
+        if (!res.encrypted_token) throw new Error(res.message ?? JSON.stringify(res));
+        this.token = this.#decryptPayload(res.encrypted_token).toString();
         /**
          * Emitted whenever a real token is found.
          * @event DiscordAuthWebsocket#finish
@@ -361,7 +371,10 @@ class DiscordAuthWebsocket extends EventEmitter {
         this.emit(Event.FINISH, this.token);
         this.destroy();
       })
-      .catch(() => false);
+      .catch(error => {
+        this.destroy();
+        this.emit(Event.ERROR, error);
+      });
   }
 
   static decryptUser(payload) {

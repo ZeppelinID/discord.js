@@ -939,13 +939,13 @@ class Guild extends AnonymousGuild {
       _data.system_channel_id = this.client.channels.resolveId(data.systemChannel);
     }
     if (data.afkTimeout) _data.afk_timeout = Number(data.afkTimeout);
-    if (typeof data.icon !== 'undefined') _data.icon = await DataResolver.resolveImage(data.icon);
+    if (typeof data.icon !== 'undefined') _data.icon = await DataResolver.resolveImage(data.icon, this.client);
     if (data.owner) _data.owner_id = this.client.users.resolveId(data.owner);
-    if (typeof data.splash !== 'undefined') _data.splash = await DataResolver.resolveImage(data.splash);
+    if (typeof data.splash !== 'undefined') _data.splash = await DataResolver.resolveImage(data.splash, this.client);
     if (typeof data.discoverySplash !== 'undefined') {
-      _data.discovery_splash = await DataResolver.resolveImage(data.discoverySplash);
+      _data.discovery_splash = await DataResolver.resolveImage(data.discoverySplash, this.client);
     }
-    if (typeof data.banner !== 'undefined') _data.banner = await DataResolver.resolveImage(data.banner);
+    if (typeof data.banner !== 'undefined') _data.banner = await DataResolver.resolveImage(data.banner, this.client);
     if (typeof data.explicitContentFilter !== 'undefined') {
       _data.explicit_content_filter =
         typeof data.explicitContentFilter === 'number'

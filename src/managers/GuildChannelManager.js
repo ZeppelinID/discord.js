@@ -217,7 +217,7 @@ class GuildChannelManager extends CachedManager {
     const id = this.resolveId(channel);
     if (!id) throw new TypeError('INVALID_TYPE', 'channel', 'GuildChannelResolvable');
 
-    const resolvedImage = await DataResolver.resolveImage(avatar);
+    const resolvedImage = await DataResolver.resolveImage(avatar, this.client);
 
     const data = await this.client.api.channels[id].webhooks.post({
       data: {
