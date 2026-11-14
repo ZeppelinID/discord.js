@@ -59,7 +59,7 @@ class ContainerComponent extends BaseMessageComponent {
     return {
       type: MessageComponentTypes[this.type],
       components: this.components.map(c => c.toJSON()),
-      accent_color: this.accent_color,
+      accent_color: this.accentColor,
       spoiler: this.spoiler,
     };
   }

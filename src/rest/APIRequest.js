@@ -2,7 +2,6 @@
 
 const Buffer = require('node:buffer').Buffer;
 const { setTimeout } = require('node:timers');
-const { FormData } = require('../util/FetchWrapper');
 
 async function fileToBlob(fileData) {
   if (fileData instanceof Blob) return fileData;

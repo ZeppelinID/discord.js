@@ -108,6 +108,8 @@ const Messages = {
   GUILD_SCHEDULED_EVENT_RESOLVE: 'Could not resolve the guild scheduled event.',
 
   INVALID_TYPE: (name, expected, an = false) => `Supplied ${name} is not a${an ? 'n' : ''} ${expected}.`,
+  INVALID_NITRO: 'The Nitro gift code or URL must be a string.',
+  INVALID_URL: url => `Not a Discord OAuth2 authorize URL: ${url}`,
   INVALID_ELEMENT: (type, name, elem) => `Supplied ${type} ${name} includes an invalid element: ${elem}`,
 
   MESSAGE_THREAD_PARENT: 'The message was not sent in a guild text or news channel',

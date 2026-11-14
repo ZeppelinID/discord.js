@@ -19,6 +19,7 @@ Please use the @dank074/discord-video-stream library for the best support.
 
 const fs = require('fs');
 const net = require('net');
+const os = require('os');
 const path = require('path');
 const process = require('process');
 
@@ -26,13 +27,15 @@ let counter = 0;
 
 class UnixStream {
   constructor(stream, onSocket) {
+    // The pid keeps sockets of bot processes started from the same place apart
     if (process.platform === 'win32') {
       const pipePrefix = '\\\\.\\pipe\\';
-      const pipeName = `node-webrtc.${++counter}.sock`;
+      const pipeName = `node-webrtc.${process.pid}.${++counter}.sock`;
       this.socketPath = path.join(pipePrefix, pipeName);
       this.url = this.socketPath;
     } else {
-      this.socketPath = `./${++counter}.sock`;
+      // Shortcut: assumes os.tmpdir() leaves room under the 104-byte Unix socket path limit; pick a shorter dir if listen fails
+      this.socketPath = path.join(os.tmpdir(), `djs-${process.pid}-${++counter}.sock`);
       this.url = `unix:${this.socketPath}`;
     }
 

@@ -192,13 +192,6 @@ class VoiceWebSocket extends EventEmitter {
          */
         this.emit('sessionDescription', packet.d);
         break;
-      case VoiceOpcodes.CLIENT_CONNECT:
-        this.connection.ssrcMap.set(+packet.d.audio_ssrc, {
-          userId: packet.d.user_id,
-          speaking: 0,
-          hasVideo: Boolean(packet.d.video_ssrc),
-        });
-        break;
       case VoiceOpcodes.CLIENT_DISCONNECT:
         const streamInfo = this.connection.receiver && this.connection.receiver.packets.streams.get(packet.d.user_id);
         if (streamInfo) {

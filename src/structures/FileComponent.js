@@ -40,7 +40,7 @@ class FileComponent extends BaseMessageComponent {
   toJSON() {
     return {
       type: MessageComponentTypes[this.type],
-      file: this.content,
+      file: this.file.toJSON(),
       spoiler: this.spoiler,
     };
   }

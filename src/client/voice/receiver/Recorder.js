@@ -5,8 +5,6 @@ const { createSocket } = require('dgram');
 const { EventEmitter } = require('events');
 const { Buffer } = require('node:buffer');
 const { Writable } = require('stream');
-const find = require('find-process').default;
-const kill = require('tree-kill');
 const { RtpPacket } = require('werift-rtp');
 const Util = require('../../../util/Util');
 const { randomPorts } = require('../util/Function');
@@ -35,11 +33,16 @@ class Recorder extends EventEmitter {
     this.promise = null;
 
     if (!portUdpH264 || !portUdpOpus) {
-      this.promise = randomPorts(6, 'udp4').then(ports => {
-        ports = ports.filter(port => port % 2 === 0);
-        this.portUdpH264 ??= ports[0];
-        this.portUdpOpus ??= ports[1];
-      });
+      this.promise = (async () => {
+        // RTP needs even ports and about half of the random ones are odd, so draw until two distinct even ones
+        const even = new Set();
+        while (even.size < 2) {
+          for (const port of await randomPorts(6, 'udp4')) if (port % 2 === 0) even.add(port);
+        }
+        const [first, second] = even;
+        this.portUdpH264 ??= first;
+        this.portUdpOpus ??= second;
+      })();
     }
 
     /**
@@ -54,12 +57,20 @@ class Recorder extends EventEmitter {
      */
     this.ready = false;
 
+    /**
+     * Whether the Recorder has been destroyed
+     * @type {boolean}
+     */
+    this.destroyed = false;
+
     this.socket = createSocket('udp4');
 
     this.init(output);
   }
   async init(output) {
     await this.promise;
+    // A destroy() during port picking must not leave an ffmpeg that nobody will stop
+    if (this.destroyed) return;
     const sdpData = Util.getSDPCodecName(this.portUdpH264, this.portUdpH265, this.portUdpOpus);
     const isStream = output instanceof Writable;
     if (isStream) {
@@ -128,6 +139,8 @@ class Recorder extends EventEmitter {
       }
     },
   ) {
+    // The UDP socket is closed by destroy(); a late packet must not throw from the receive handler
+    if (this.destroyed) return;
     if (!(payload instanceof RtpPacket)) {
       payload = RtpPacket.deSerialize(Buffer.isBuffer(payload) ? payload : Buffer.from(payload));
     }
@@ -147,16 +160,13 @@ class Recorder extends EventEmitter {
   }
 
   destroy() {
-    const ffmpegPid = this.stream.pid; // But it is ppid ;-;
-    const args = this.stream.spawnargs.slice(1).join(' '); // Skip ffmpeg
-    find('name', 'ffmpeg', true).then(list => {
-      let process = list.find(o => o.pid === ffmpegPid || o.ppid === ffmpegPid || o.cmd.includes(args));
-      if (process) {
-        kill(process.pid);
-        this.receiver?.videoStreams?.delete(this.userId);
-        this.emit('closed');
-      }
-    });
+    if (this.destroyed) return;
+    this.destroyed = true;
+    // `this.stream` is the ffmpeg process itself (spawned without a shell), so no process lookup is needed
+    this.stream?.kill();
+    this.socket.close();
+    this.receiver?.videoStreams?.delete(this.userId);
+    this.emit('closed');
   }
 
   /**

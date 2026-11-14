@@ -95,17 +95,6 @@ class MessagePayload {
   }
 
   /**
-   * Whether or not the target is an {@link Interaction} or an {@link InteractionWebhook}
-   * @type {boolean}
-   * @readonly
-   */
-  get isInteraction() {
-    const Interaction = require('./Interaction');
-    const InteractionWebhook = require('./InteractionWebhook');
-    return this.target instanceof Interaction || this.target instanceof InteractionWebhook;
-  }
-
-  /**
    * Makes the content of this message.
    * @returns {?string}
    */
@@ -126,7 +115,6 @@ class MessagePayload {
    */
   resolveData() {
     if (this.data) return this;
-    const isInteraction = this.isInteraction;
     const isWebhook = this.isWebhook;
 
     const content = this.makeContent();
@@ -157,10 +145,6 @@ class MessagePayload {
     let flags;
     if (this.options.flags != null) {
       flags = new MessageFlags(this.options.flags).bitfield;
-    }
-
-    if (isInteraction && this.options.ephemeral) {
-      flags |= MessageFlags.FLAGS.EPHEMERAL;
     }
 
     let allowedMentions =
@@ -347,8 +331,7 @@ module.exports = MessagePayload;
 
 /**
  * A target for a message.
- * @typedef {TextBasedChannels|User|GuildMember|Webhook|WebhookClient|Interaction|InteractionWebhook|
- * Message|MessageManager} MessageTarget
+ * @typedef {TextBasedChannels|User|GuildMember|Webhook|WebhookClient|Message|MessageManager} MessageTarget
  */
 
 /**

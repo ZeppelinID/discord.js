@@ -309,6 +309,7 @@ exports.VoiceOpcodes = {
  * * GUILD_MEMBER_ADD: guildMemberAdd
  * * GUILD_MEMBER_REMOVE: guildMemberRemove
  * * GUILD_MEMBER_UPDATE: guildMemberUpdate
+ * * GUILD_MEMBER_SPEAKING: guildMemberSpeaking
  * * GUILD_MEMBER_AVAILABLE: guildMemberAvailable
  * * GUILD_MEMBERS_CHUNK: guildMembersChunk
  * * GUILD_INTEGRATIONS_UPDATE: guildIntegrationsUpdate
@@ -404,6 +405,7 @@ exports.Events = {
   GUILD_MEMBER_ADD: 'guildMemberAdd',
   GUILD_MEMBER_REMOVE: 'guildMemberRemove',
   GUILD_MEMBER_UPDATE: 'guildMemberUpdate',
+  GUILD_MEMBER_SPEAKING: 'guildMemberSpeaking',
   GUILD_MEMBER_AVAILABLE: 'guildMemberAvailable',
   GUILD_MEMBERS_CHUNK: 'guildMembersChunk',
   GUILD_INTEGRATIONS_UPDATE: 'guildIntegrationsUpdate',

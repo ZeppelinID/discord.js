@@ -7,10 +7,9 @@ const { Impit } = require('impit');
  * All fetch call points should import from this file for easy future replacement.
  *
  * This module exports:
- * - `fetch` - singleton impit fetch (browser: chrome, followRedirects: true)
- * - `FormData`, `Headers`, `Response`, `Request`, `Blob` - global web APIs
- * - `Impit` - the Impit class itself
- * - `createImpit` / `getDefaultImpit` / `createFetch` helpers for per-client instances
+ * - `fetch` - shared impit fetch without a proxy, the fallback when no client is available
+ * - `createImpit` - per-client instances (RESTManager)
+ * - `getProxyUrl` - turns `client.options.http.agent` into an impit `proxyUrl`
  */
 
 let defaultImpit = null;
@@ -44,16 +43,6 @@ function createImpit(options = {}) {
 }
 
 /**
- * Create a bound fetch function from an Impit instance.
- * @param {Object} [options={}] Impit options
- * @returns {Function}
- */
-function createFetch(options = {}) {
-  const impit = createImpit(options);
-  return impit.fetch.bind(impit);
-}
-
-/**
  * Singleton fetch - delegates to the default Impit instance.
  * API compatible with global fetch.
  * @param {string|URL|Request} resource The resource to fetch
@@ -79,17 +68,4 @@ function getProxyUrl(data) {
   return undefined;
 }
 
-module.exports = {
-  fetch,
-  getDefaultImpit,
-  createImpit,
-  createFetch,
-  getProxyUrl,
-  Impit,
-  FormData: globalThis.FormData,
-  Headers: globalThis.Headers,
-  Response: globalThis.Response,
-  Request: globalThis.Request,
-  Blob: globalThis.Blob,
-  File: globalThis.File,
-};
+module.exports = { fetch, createImpit, getProxyUrl };
