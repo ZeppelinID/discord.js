@@ -341,8 +341,10 @@ class WebSocketManager extends EventEmitter {
       }).unref();
     }
 
-    if (packet && PacketHandlers[packet.t]) {
-      PacketHandlers[packet.t](this.client, packet, shard);
+    // Own, callable handlers only: an event name like "constructor" or "__proto__" must not reach Object.prototype
+    const handler = packet && Object.hasOwn(PacketHandlers, packet.t) ? PacketHandlers[packet.t] : null;
+    if (typeof handler === 'function') {
+      handler(this.client, packet, shard);
     } else if (packet) {
       /**
        * Emitted whenever a packet isn't handled.

@@ -401,7 +401,9 @@ class Util extends null {
    * @returns {string}
    */
   static escapeMaskedLink(text) {
-    return text.replaceAll(/\[.+\]\(.+\)/gm, '\\$&');
+    // Neither part may contain `[`, so each match attempt stops at the next `[`: linear time on any input.
+    // The old /\[.+\]\(.+\)/ took ~1.8s on a 4000-character message of repeated "[a](" (cubic backtracking).
+    return text.replaceAll(/\[[^[\]\r\n]*\]\([^[)\r\n]*\)/g, '\\$&');
   }
 
   /**
