@@ -369,12 +369,16 @@ class MessageManager extends CachedManager {
         total: 0,
       };
     }
-    if (this.channel.guildId) {
-      data = await this.client.api.guilds[this.channel.guildId].messages[`search?${stringQuery.join('&')}`].get();
-    } else {
+    if (!this.channel.guildId) {
       stringQuery = stringQuery.filter(v => !v.startsWith('channel_id') && !v.startsWith('include_nsfw'));
-      data = await this.client.api.channels[this.channel.id].messages[`search?${stringQuery.join('&')}`].get();
     }
+    // The pieces are "key=value" strings (some joined by "&"); the router takes a query object
+    const query = {};
+    for (const [key, value] of new URLSearchParams(stringQuery.join('&'))) (query[key] ??= []).push(value);
+    const route = this.channel.guildId
+      ? this.client.api.guilds[this.channel.guildId]
+      : this.client.api.channels[this.channel.id];
+    data = await route.messages.search.get({ query });
 
     for await (const message of data.messages) result.set(message[0].id, new Message(this.client, message[0]));
     return {

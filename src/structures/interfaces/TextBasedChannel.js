@@ -377,11 +377,11 @@ class TextBasedChannel {
       postData,
       attachments,
     );
-    this.client.api.interactions.post({
+    const request = this.client.api.interactions.post({
       data: body,
       usePayloadJSON: true,
     });
-    return Util.createPromiseInteraction(this.client, nonce, 5000);
+    return Promise.all([Util.createPromiseInteraction(this.client, nonce, 5000), request]).then(([reply]) => reply);
   }
 
   /**

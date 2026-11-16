@@ -1116,10 +1116,13 @@ class Message extends Base {
         custom_id: button.customId,
       },
     };
-    this.client.api.interactions.post({
+    const request = this.client.api.interactions.post({
       data,
     });
-    return Util.createPromiseInteraction(this.client, nonce, 5_000, true, this);
+    // The reply waiter starts with the request; a failed request rejects at once with its own error
+    return Promise.all([Util.createPromiseInteraction(this.client, nonce, 5_000, true, this), request]).then(
+      ([reply]) => reply,
+    );
   }
 
   /**
@@ -1187,10 +1190,12 @@ class Message extends Base {
       },
       nonce,
     };
-    this.client.api.interactions.post({
+    const request = this.client.api.interactions.post({
       data,
     });
-    return Util.createPromiseInteraction(this.client, nonce, 5_000, true, this);
+    return Promise.all([Util.createPromiseInteraction(this.client, nonce, 5_000, true, this), request]).then(
+      ([reply]) => reply,
+    );
   }
 
   /**

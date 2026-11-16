@@ -110,6 +110,7 @@ const Messages = {
   INVALID_TYPE: (name, expected, an = false) => `Supplied ${name} is not a${an ? 'n' : ''} ${expected}.`,
   INVALID_NITRO: 'The Nitro gift code or URL must be a string.',
   INVALID_URL: url => `Not a Discord OAuth2 authorize URL: ${url}`,
+  INVALID_ROUTE_PART: part => `A route part must be a single path segment, got: ${part}`,
   ATTACHMENT_UPLOAD_FAILED: status => `Attachment upload failed with HTTP ${status}.`,
   INVALID_ELEMENT: (type, name, elem) => `Supplied ${type} ${name} includes an invalid element: ${elem}`,
 

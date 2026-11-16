@@ -767,12 +767,12 @@ class WebSocketShard extends EventEmitter {
    */
   _send(data) {
     if (this.connection?.readyState !== WebSocket.OPEN) {
-      this.debug(`Tried to send packet '${JSON.stringify(data)}' but no WebSocket is available!`);
+      this.debug(`Tried to send packet '${Util.redactedStringify(data)}' but no WebSocket is available!`);
       this.destroy({ closeCode: 4_000 });
       return;
     }
 
-    this.debug(`[WebSocketShard] send packet '${JSON.stringify(data)}'`);
+    this.debug(`[WebSocketShard] send packet '${Util.redactedStringify(data)}'`);
     this.connection.send(WebSocket.pack(data), err => {
       if (err) this.manager.client.emit(Events.SHARD_ERROR, err, this.id);
     });

@@ -102,20 +102,22 @@ class VoiceConnectionUDPClient extends EventEmitter {
       this.emit('debug', '[UDP] socket closed');
     });
     this.emit('debug', `[UDP] created socket`);
-    socket.once('message', message => {
+    const onHandshake = message => {
       this.emit('debug', `[UDP] message: [${[...message]}] (${message})`);
-      if (message.readUInt16BE(0) !== 2) {
-        throw new Error('UDP_WRONG_HANDSHAKE');
-      }
+      // Anyone can send to this socket: ignore what is not Discord's reply and keep waiting for it
+      if (message.length < 8 || message.readUInt16BE(0) !== 2) return;
       // Stop if the sockets have been deleted because the connection has been closed already
-      if (!this.voiceConnection.sockets.ws) return;
+      if (!this.voiceConnection.sockets.ws) {
+        socket.removeListener('message', onHandshake);
+        return;
+      }
 
       const packet = parseLocalPacket(message);
       if (packet.error) {
         this.emit('debug', `[UDP] ERROR: ${packet.error}`);
-        this.emit('error', packet.error);
         return;
       }
+      socket.removeListener('message', onHandshake);
 
       this.emit('debug', `[UDP] Parse local packet: ${packet.address}:${packet.port}`);
 
@@ -143,8 +145,16 @@ class VoiceConnectionUDPClient extends EventEmitter {
 
       this.emit('debug', `[UDP] << ${JSON.stringify(packet)}`);
 
-      socket.on('message', buffer => this.voiceConnection.receiver.packets.push(buffer));
-    });
+      socket.on('message', buffer => {
+        try {
+          this.voiceConnection.receiver.packets.push(buffer);
+        } catch (error) {
+          // Short, forged or undecryptable datagrams must not kill the process
+          this.emit('debug', `[UDP] dropped a packet: ${error.message}`);
+        }
+      });
+    };
+    socket.on('message', onHandshake);
 
     const blankMessage = Buffer.alloc(74);
     blankMessage.writeUInt16BE(1, 0);
