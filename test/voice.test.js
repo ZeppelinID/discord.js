@@ -71,7 +71,12 @@ test('bad datagrams are dropped instead of crashing the process', async t => {
   garbage.writeUInt32BE(SSRC, 8);
   await send(Buffer.alloc(4));
   await send(garbage);
-  while (debug.filter(message => message.includes('dropped a packet')).length < 2) await sleep(10); // eslint-disable-line no-await-in-loop
+  // Both datagrams must be handled and dropped, and the test must fail by itself if they never are
+  const dropped = () => debug.filter(message => message.includes('dropped a packet')).length;
+  for (let tries = 0; dropped() < 2; tries++) {
+    assert.ok(tries < 200, 'the bad datagrams were never handled');
+    await sleep(10); // eslint-disable-line no-await-in-loop
+  }
 });
 
 test('secrets are hidden in the voice WebSocket debug output', async () => {

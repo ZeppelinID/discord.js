@@ -13,6 +13,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
@@ -22,7 +23,8 @@ jobs:
           registry-url: https://registry.npmjs.org
           package-manager-cache: false # No dependency cache in release builds
 
-      - run: npm ci
+      # This job can publish to npm, so no dependency install script may run in it (none has one today)
+      - run: npm ci --ignore-scripts
 
       - name: Lint, typings and tests
         run: npm run lint && npm run test:typings && npm test

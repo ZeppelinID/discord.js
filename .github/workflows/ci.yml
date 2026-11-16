@@ -10,8 +10,9 @@ permissions:
 
 jobs:
   check:
-    name: Lint, typings, tests and package
+    name: Lint, typings and package
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
 
@@ -20,7 +21,8 @@ jobs:
           node-version: 26
           cache: npm
 
-      - run: npm ci
+      # None of the dependencies has an install script, so none is allowed to run
+      - run: npm ci --ignore-scripts
 
       - name: Lint
         run: npm run lint
@@ -31,11 +33,29 @@ jobs:
       - name: Typings
         run: npm run test:typings
 
-      - name: Tests
-        run: npm test
+      - name: Package contents
+        run: npm pack --dry-run
+
+  # The oldest Node version listed here must match "engines" in package.json
+  test:
+    name: Tests on Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        node: [24, 26]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - run: npm ci --ignore-scripts
 
       - name: Package loads
         run: node -e "const { Client, version } = require('./'); new Client().destroy(); console.log('Loaded v' + version)"
 
-      - name: Package contents
-        run: npm pack --dry-run
+      - name: Tests
+        run: npm test
