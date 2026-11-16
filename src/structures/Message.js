@@ -1097,7 +1097,7 @@ class Message extends Base {
    * Currently, only clicking by CustomID is supported.
    * @returns {Promise<Message|Modal>}
    */
-  clickButton(buttonid) {
+  async clickButton(buttonid) {
     const button = this.resolveComponent(buttonid);
     if (!button || button.type !== 'BUTTON') throw new TypeError('BUTTON_NOT_FOUND');
     if (button.disabled) throw new TypeError('BUTTON_CANNOT_CLICK');
@@ -1131,9 +1131,9 @@ class Message extends Base {
    * @param {Array<UserResolvable | RoleResolvable | ChannelResolvable | string>} values Any value
    * @returns {Promise<Message|Modal>}
    */
-  selectMenu(menu, values = []) {
+  async selectMenu(menu, values = []) {
     let selectMenu = menu;
-    if (/[0-4]/.test(menu)) {
+    if (/^[0-4]$/.test(menu)) {
       selectMenu = this.components[menu]?.components[0];
     } else if (typeof menu == 'string') {
       selectMenu = this.components
@@ -1145,6 +1145,7 @@ class Message extends Base {
             !b.disabled,
         );
     }
+    if (!selectMenu) throw new TypeError('SELECT_MENU_NOT_FOUND');
     if (values.length < selectMenu.minValues) {
       throw new RangeError(`[SELECT_MENU_MIN_VALUES] The minimum number of values is ${selectMenu.minValues}`);
     }

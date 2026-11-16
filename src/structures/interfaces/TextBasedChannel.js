@@ -6,16 +6,13 @@ const { InteractionTypes, ApplicationCommandOptionTypes, Events } = require('../
 const { Error } = require('../../errors');
 const SnowflakeUtil = require('../../util/SnowflakeUtil');
 const { setTimeout } = require('node:timers');
-const { s } = require('@sapphire/shapeshift');
 const Util = require('../../util/Util');
-const validateName = stringName =>
-  s
-    .string()
-    .lengthGreaterThanOrEqual(1)
-    .lengthLessThanOrEqual(32)
-    .regex(/^[\p{Ll}\p{Lm}\p{Lo}\p{N}\p{sc=Devanagari}\p{sc=Thai}_-]+$/u)
-    .setValidationEnabled(true)
-    .parse(stringName);
+const validateName = name => {
+  if (!/^[\p{Ll}\p{Lm}\p{Lo}\p{N}\p{sc=Devanagari}\p{sc=Thai}_-]{1,32}$/u.test(name)) {
+    throw new Error('SLASH_COMMAND_NAME_INVALID', name);
+  }
+  return name;
+};
 
 /**
  * Interface for classes that have text-channel-like features.

@@ -60,12 +60,8 @@ class PacketHandler extends EventEmitter {
 
   makeVideoStream(user, output) {
     if (this.videoStreams.has(user)) return this.videoStreams.get(user);
-    const stream = new Recorder(this, {
-      userId: user,
-      output,
-      portUdpH264: 65506,
-      portUdpOpus: 65510,
-    });
+    // No ports given: the recorder picks free ones, so two recordings (or another program) cannot collide
+    const stream = new Recorder(this, { userId: user, output });
     stream.on('ready', () => {
       this.videoStreams.set(user, stream);
     });

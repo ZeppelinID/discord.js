@@ -115,7 +115,7 @@ class Modal {
    *    modal.reply();
    * })
    */
-  reply() {
+  async reply() {
     if (!this.applicationId || !this.client || !this.channelId || this.replied) throw new Error('Modal cannot reply');
     // Get Object
     const dataFinal = this.toJSON();

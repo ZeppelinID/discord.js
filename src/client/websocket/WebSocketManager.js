@@ -132,27 +132,13 @@ class WebSocketManager extends EventEmitter {
       .then(r => (gatewayURL = r.url))
       .catch(() => {});
 
-    const total = Infinity;
-    const remaining = Infinity;
-    const recommendedShards = 1;
-
     this.debug(`Fetched Gateway Information
-    URL: ${gatewayURL}
-    Recommended Shards: ${recommendedShards}`);
-
-    this.debug(`Session Limit Information
-    Total: ${total}
-    Remaining: ${remaining}`);
+    URL: ${gatewayURL}`);
 
     this.gateway = `${gatewayURL}/`;
 
-    let { shards } = this.client.options;
-
-    if (shards === 'auto') {
-      this.debug(`Using the recommended shard count provided by Discord: ${recommendedShards}`);
-      this.totalShards = this.client.options.shardCount = recommendedShards;
-      shards = this.client.options.shards = Array.from({ length: recommendedShards }, (_, i) => i);
-    }
+    // A user account always uses the single shard 0 (see Client#_validateOptions)
+    const { shards } = this.client.options;
 
     this.totalShards = shards.length;
     this.debug(`Spawning shards: ${shards.join(', ')}`);

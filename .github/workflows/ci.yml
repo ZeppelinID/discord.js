@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   check:
-    name: Lint, typings and package
+    name: Lint, typings, tests and package
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -30,6 +30,9 @@ jobs:
 
       - name: Typings
         run: npm run test:typings
+
+      - name: Tests
+        run: npm test
 
       - name: Package loads
         run: node -e "const { Client, version } = require('./'); new Client().destroy(); console.log('Loaded v' + version)"

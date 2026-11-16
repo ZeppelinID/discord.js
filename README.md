@@ -32,6 +32,10 @@
 - 🌐 **Proxies** for REST requests, uploads, downloads, the gateway and QR login
 - 📘 **TypeScript** typings included
 
+> **ℹ️ Note**
+> `WebEmbed` links go through a third-party site (`WebEmbed.baseURL`, a free `onrender.com` host) that sees the embed
+> text and decides where `redirect` leads. Set `WebEmbed.baseURL` to your own host if you do not want that.
+
 ## 📦 Installation
 
 ```sh
@@ -190,7 +194,8 @@ const client = new Client({
 npm install
 npm run lint          # ESLint and Prettier
 npm run test:typings  # Type-check the typings
-npm run build         # Fix lint, format and type-check
+npm test              # Run the tests (node:test)
+npm run build         # Fix lint, format, type-check and test
 ```
 
 Every push and pull request runs the [CI workflow](.github/workflows/ci.yml). Publishing a GitHub release runs the

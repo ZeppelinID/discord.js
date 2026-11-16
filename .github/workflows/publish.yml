@@ -24,8 +24,8 @@ jobs:
 
       - run: npm ci
 
-      - name: Lint and typings
-        run: npm run lint && npm run test:typings
+      - name: Lint, typings and tests
+        run: npm run lint && npm run test:typings && npm test
 
       - name: Release tag must match package.json
         run: |

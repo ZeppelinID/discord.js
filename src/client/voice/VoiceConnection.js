@@ -486,12 +486,39 @@ class VoiceConnection extends EventEmitter {
    */
   _disconnect() {
     this.cleanup();
+    this._unhookStreamEvents();
     this.status = VoiceStatus.DISCONNECTED;
     /**
      * Emitted when the voice connection disconnects.
      * @event VoiceConnection#disconnect
      */
     this.emit('disconnect');
+  }
+
+  /**
+   * Closes this connection on our side only, without telling Discord (used when the whole client goes away).
+   * @private
+   */
+  _close() {
+    this.emit('closing');
+    clearTimeout(this.connectTimeout);
+    this._disconnect();
+  }
+
+  /**
+   * Stops listening to stream events and closes the stream connections that relied on them. Nothing happens for
+   * connections that never started listening, such as the stream connections themselves.
+   * @private
+   */
+  _unhookStreamEvents() {
+    if (!this._onRaw) return;
+    this.channel.client.removeListener('raw', this._onRaw);
+    this._onRaw = null;
+    // The listener is what closed these when Discord ended their streams
+    const streams = [this.streamConnection, ...this.streamWatchConnection.values()];
+    this.streamConnection = null;
+    this.streamWatchConnection.clear();
+    for (const stream of streams) stream?._close();
   }
 
   /**
@@ -670,6 +697,73 @@ class VoiceConnection extends EventEmitter {
   playVideo() {} // eslint-disable-line no-empty-function
 
   /**
+   * Starts listening to the stream events (create, server update, update, delete) of our own stream and of the streams
+   * we watch. Done once, by the first stream that is created or joined, and undone by {@link VoiceConnection#_disconnect}.
+   * @private
+   */
+  _hookStreamEvents() {
+    if (this._onRaw) return;
+    this._onRaw = packet => {
+      if (typeof packet !== 'object' || !packet.t || !packet.d || !packet.d?.stream_key) {
+        return;
+      }
+      const { t: event, d: data } = packet;
+      const StreamKey = parseStreamKey(data.stream_key);
+      if (
+        StreamKey.userId === this.channel.client.user.id &&
+        this.channel.id == StreamKey.channelId &&
+        this.streamConnection
+      ) {
+        // Current user stream
+        switch (event) {
+          case 'STREAM_CREATE': {
+            this.streamConnection.setSessionId(this.authentication.sessionId);
+            this.streamConnection.serverId = data.rtc_server_id;
+            break;
+          }
+          case 'STREAM_SERVER_UPDATE': {
+            this.streamConnection.setTokenAndEndpoint(data.token, data.endpoint);
+            break;
+          }
+          case 'STREAM_DELETE': {
+            this.streamConnection.disconnect();
+            break;
+          }
+          case 'STREAM_UPDATE': {
+            this.streamConnection.update(data);
+            break;
+          }
+        }
+      }
+      if (this.streamWatchConnection.has(StreamKey.userId) && this.channel.id == StreamKey.channelId) {
+        const streamConnection = this.streamWatchConnection.get(StreamKey.userId);
+        // Watch user stream
+        switch (event) {
+          case 'STREAM_CREATE': {
+            streamConnection.setSessionId(this.authentication.sessionId);
+            streamConnection.serverId = data.rtc_server_id;
+            break;
+          }
+          case 'STREAM_SERVER_UPDATE': {
+            streamConnection.setTokenAndEndpoint(data.token, data.endpoint);
+            break;
+          }
+          case 'STREAM_DELETE': {
+            streamConnection.disconnect();
+            streamConnection.receiver.packets.destroyAllStream();
+            break;
+          }
+          case 'STREAM_UPDATE': {
+            streamConnection.update(data);
+            break;
+          }
+        }
+      }
+    };
+    this.channel.client.on('raw', this._onRaw);
+  }
+
+  /**
    * Create new connection to screenshare stream
    * @returns {Promise<StreamConnection>}
    */
@@ -682,66 +776,7 @@ class VoiceConnection extends EventEmitter {
         const connection = (this.streamConnection = new StreamConnection(this.voiceManager, this.channel, this));
         connection.setVideoCodec(this.videoCodec); // Sync :?
         // Setup event...
-        if (!this.eventHook) {
-          this.eventHook = true; // Dont listen this event two times :/
-          this.channel.client.on('raw', packet => {
-            if (typeof packet !== 'object' || !packet.t || !packet.d || !packet.d?.stream_key) {
-              return;
-            }
-            const { t: event, d: data } = packet;
-            const StreamKey = parseStreamKey(data.stream_key);
-            if (
-              StreamKey.userId === this.channel.client.user.id &&
-              this.channel.id == StreamKey.channelId &&
-              this.streamConnection
-            ) {
-              // Current user stream
-              switch (event) {
-                case 'STREAM_CREATE': {
-                  this.streamConnection.setSessionId(this.authentication.sessionId);
-                  this.streamConnection.serverId = data.rtc_server_id;
-                  break;
-                }
-                case 'STREAM_SERVER_UPDATE': {
-                  this.streamConnection.setTokenAndEndpoint(data.token, data.endpoint);
-                  break;
-                }
-                case 'STREAM_DELETE': {
-                  this.streamConnection.disconnect();
-                  break;
-                }
-                case 'STREAM_UPDATE': {
-                  this.streamConnection.update(data);
-                  break;
-                }
-              }
-            }
-            if (this.streamWatchConnection.has(StreamKey.userId) && this.channel.id == StreamKey.channelId) {
-              const streamConnection = this.streamWatchConnection.get(StreamKey.userId);
-              // Watch user stream
-              switch (event) {
-                case 'STREAM_CREATE': {
-                  streamConnection.setSessionId(this.authentication.sessionId);
-                  streamConnection.serverId = data.rtc_server_id;
-                  break;
-                }
-                case 'STREAM_SERVER_UPDATE': {
-                  streamConnection.setTokenAndEndpoint(data.token, data.endpoint);
-                  break;
-                }
-                case 'STREAM_DELETE': {
-                  streamConnection.disconnect();
-                  streamConnection.receiver.packets.destroyAllStream();
-                  break;
-                }
-                case 'STREAM_UPDATE': {
-                  streamConnection.update(data);
-                  break;
-                }
-              }
-            }
-          });
-        }
+        this._hookStreamEvents();
 
         connection.sendSignalScreenshare();
         connection.sendScreenshareState(true);
@@ -796,66 +831,7 @@ class VoiceConnection extends EventEmitter {
         this.streamWatchConnection.set(userId, connection);
         connection.setVideoCodec(this.videoCodec);
         // Setup event...
-        if (!this.eventHook) {
-          this.eventHook = true; // Dont listen this event two times :/
-          this.channel.client.on('raw', packet => {
-            if (typeof packet !== 'object' || !packet.t || !packet.d || !packet.d?.stream_key) {
-              return;
-            }
-            const { t: event, d: data } = packet;
-            const StreamKey = parseStreamKey(data.stream_key);
-            if (
-              StreamKey.userId === this.channel.client.user.id &&
-              this.channel.id == StreamKey.channelId &&
-              this.streamConnection
-            ) {
-              // Current user stream
-              switch (event) {
-                case 'STREAM_CREATE': {
-                  this.streamConnection.setSessionId(this.authentication.sessionId);
-                  this.streamConnection.serverId = data.rtc_server_id;
-                  break;
-                }
-                case 'STREAM_SERVER_UPDATE': {
-                  this.streamConnection.setTokenAndEndpoint(data.token, data.endpoint);
-                  break;
-                }
-                case 'STREAM_DELETE': {
-                  this.streamConnection.disconnect();
-                  break;
-                }
-                case 'STREAM_UPDATE': {
-                  this.streamConnection.update(data);
-                  break;
-                }
-              }
-            }
-            if (this.streamWatchConnection.has(StreamKey.userId) && this.channel.id == StreamKey.channelId) {
-              const streamConnection = this.streamWatchConnection.get(StreamKey.userId);
-              // Watch user stream
-              switch (event) {
-                case 'STREAM_CREATE': {
-                  streamConnection.setSessionId(this.authentication.sessionId);
-                  streamConnection.serverId = data.rtc_server_id;
-                  break;
-                }
-                case 'STREAM_SERVER_UPDATE': {
-                  streamConnection.setTokenAndEndpoint(data.token, data.endpoint);
-                  break;
-                }
-                case 'STREAM_DELETE': {
-                  streamConnection.disconnect();
-                  streamConnection.receiver.packets.destroyAllStream();
-                  break;
-                }
-                case 'STREAM_UPDATE': {
-                  streamConnection.update(data);
-                  break;
-                }
-              }
-            }
-          });
-        }
+        this._hookStreamEvents();
 
         connection.sendSignalScreenshare();
 
