@@ -46,16 +46,16 @@ module.exports = (client, { d: data }, shard) => {
   // Todo: data.auth_session_id_hash
   client.sessions.currentSessionIdHash = data.auth_session_id_hash;
 
-  if (data.guilds.length) {
-    if (data.guilds.length > 80) {
-      // Split data bc 15kb
-      const data1 = data.guilds.slice(0, Math.floor(data.guilds.length / 2));
-      const data2 = data.guilds.slice(Math.floor(data.guilds.length / 2));
-      client.ws.broadcast({
-        op: Opcodes.GUILD_SUBSCRIPTIONS_BULK,
-        d: {
-          subscriptions: data1.reduce((accumulator, guild) => {
-            accumulator[guild.id] = {
+  // Subscribe to every guild. Above 80 guilds the packet is split in two, one would be too big (15kb)
+  const half = data.guilds.length > 80 ? Math.ceil(data.guilds.length / 2) : data.guilds.length;
+  for (let i = 0; i < data.guilds.length; i += half) {
+    client.ws.broadcast({
+      op: Opcodes.GUILD_SUBSCRIPTIONS_BULK,
+      d: {
+        subscriptions: Object.fromEntries(
+          data.guilds.slice(i, i + half).map(guild => [
+            guild.id,
+            {
               typing: true,
               threads: true,
               activities: true,
@@ -63,47 +63,11 @@ module.exports = (client, { d: data }, shard) => {
               thread_member_lists: [],
               members: [],
               channels: {},
-            };
-            return accumulator;
-          }, {}),
-        },
-      });
-      client.ws.broadcast({
-        op: Opcodes.GUILD_SUBSCRIPTIONS_BULK,
-        d: {
-          subscriptions: data2.reduce((accumulator, guild) => {
-            accumulator[guild.id] = {
-              typing: true,
-              threads: true,
-              activities: true,
-              member_updates: true,
-              thread_member_lists: [],
-              members: [],
-              channels: {},
-            };
-            return accumulator;
-          }, {}),
-        },
-      });
-    } else {
-      client.ws.broadcast({
-        op: Opcodes.GUILD_SUBSCRIPTIONS_BULK,
-        d: {
-          subscriptions: data.guilds.reduce((accumulator, guild) => {
-            accumulator[guild.id] = {
-              typing: true,
-              threads: true,
-              activities: true,
-              member_updates: true,
-              thread_member_lists: [],
-              members: [],
-              channels: {},
-            };
-            return accumulator;
-          }, {}),
-        },
-      });
-    }
+            },
+          ]),
+        ),
+      },
+    });
   }
 
   Promise.all(

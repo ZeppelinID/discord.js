@@ -107,3 +107,35 @@ test('a modal whose request failed can be sent again', async () => {
   await assert.rejects(Modal.prototype.reply.call(modal), { message: 'POST failed: 403' });
   assert.equal(modal.replied, false);
 });
+
+test('selectMenu finds menus by custom id, even ids with digits, and by row number', async () => {
+  const posted = [];
+  const client = makeClient(({ data }) => {
+    posted.push(data.data.custom_id);
+    setImmediate(() => client.emit('messageCreate', { nonce: data.nonce }));
+    return Promise.resolve();
+  });
+  const message = messageStub(client);
+  message.components[0].components[0].customId = 'select_role_1';
+
+  await Message.prototype.selectMenu.call(message, 'select_role_1', ['a']);
+  await Message.prototype.selectMenu.call(message, 0, ['a']);
+  await Message.prototype.selectMenu.call(message, '0', ['a']);
+  assert.deepEqual(posted, ['select_role_1', 'select_role_1', 'select_role_1']);
+
+  await assert.rejects(Message.prototype.selectMenu.call(message, 'missing', ['a']), {
+    message: 'SELECT_MENU_NOT_FOUND',
+  });
+  await assert.rejects(Message.prototype.selectMenu.call(message, 3, ['a']), { message: 'SELECT_MENU_NOT_FOUND' });
+});
+
+test('slash command names that Discord would reject fail before any request', async () => {
+  const client = makeClient(() => assert.fail('no request expected'));
+  for (const name of ['Ping', '', 'ping!', 'x'.repeat(33)]) {
+    await assert.rejects(
+      TextBasedChannel.prototype.sendSlash.call(channelStub(client), '1', name),
+      { code: 'SLASH_COMMAND_NAME_INVALID' },
+      JSON.stringify(name),
+    );
+  }
+});

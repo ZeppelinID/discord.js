@@ -10,12 +10,13 @@ const { fetch } = require('./FetchWrapper');
 const { Error: DiscordError, RangeError, TypeError } = require('../errors');
 const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 const isObject = d => typeof d === 'object' && d !== null;
+const isPlainObject = d => isObject(d) && [Object.prototype, null].includes(Object.getPrototypeOf(d));
 
 let deprecationEmittedForSplitMessage = false;
 let deprecationEmittedForRemoveMentions = false;
 let deprecationEmittedForResolveAutoArchiveMaxLimit = false;
 
-const TextSortableGroupTypes = ['GUILD_TEXT', 'GUILD_ANNOUCMENT', 'GUILD_FORUM'];
+const TextSortableGroupTypes = ['GUILD_TEXT', 'GUILD_NEWS', 'GUILD_FORUM'];
 const VoiceSortableGroupTypes = ['GUILD_VOICE', 'GUILD_STAGE_VOICE'];
 const CategorySortableGroupTypes = ['GUILD_CATEGORY'];
 
@@ -417,16 +418,6 @@ class Util extends null {
   }
 
   /**
-   * @typedef {Object} FetchRecommendedShardsOptions
-   * @property {number} [guildsPerShard=1000] Number of guilds assigned per shard
-   * @property {number} [multipleOf=1] The multiple the shard count should round up to. (16 for large bot sharding)
-   */
-
-  static fetchRecommendedShards() {
-    throw new DiscordError('INVALID_USER_API');
-  }
-
-  /**
    * Parses emoji info out of a string. The string must be one of:
    * * A UTF-8 emoji (no id)
    * * A URL-encoded UTF-8 emoji (no id)
@@ -467,58 +458,25 @@ class Util extends null {
   }
 
   /**
-   * Sets default properties on an object that aren't already specified.
+   * Sets default properties on a copy of an object for the ones that aren't already specified.
+   * Plain nested objects are merged the same way, everything else (arrays, class instances, functions) is kept as given.
    * @param {Object} def Default properties
-   * @param {Object} given Object to assign defaults to
+   * @param {Object} given Object to assign defaults to, it is not changed
    * @returns {Object}
    * @private
    */
   static mergeDefault(def, given) {
     if (!given) return def;
+    const merged = { ...given };
     for (const key in def) {
       if (!has(given, key) || given[key] === undefined) {
-        given[key] = def[key];
-      } else if (given[key] === Object(given[key])) {
-        given[key] = Util.mergeDefault(def[key], given[key]);
+        merged[key] = def[key];
+      } else if (isPlainObject(given[key]) && isPlainObject(def[key])) {
+        merged[key] = Util.mergeDefault(def[key], given[key]);
       }
     }
 
-    return given;
-  }
-
-  /**
-   * Options used to make an error object.
-   * @typedef {Object} MakeErrorOptions
-   * @property {string} name Error type
-   * @property {string} message Message for the error
-   * @property {string} stack Stack for the error
-   */
-
-  /**
-   * Makes an Error from a plain info object.
-   * @param {MakeErrorOptions} obj Error info
-   * @returns {Error}
-   * @private
-   */
-  static makeError(obj) {
-    const err = new Error(obj.message);
-    err.name = obj.name;
-    err.stack = obj.stack;
-    return err;
-  }
-
-  /**
-   * Makes a plain error info object from an Error.
-   * @param {Error} err Error to get info from
-   * @returns {MakeErrorOptions}
-   * @private
-   */
-  static makePlainError(err) {
-    return {
-      name: err.name,
-      message: err.message,
-      stack: err.stack,
-    };
+    return merged;
   }
 
   /**
@@ -685,8 +643,8 @@ class Util extends null {
         return mentionedChannel ? `#${mentionedChannel.name}` : input;
       })
       .replace(/<@&[0-9]+>/g, input => {
-        if (channel.type === 'DM') return input;
-        const role = channel.guild.roles.cache.get(input.replace(/<|@|>|&/g, ''));
+        // DMs and group DMs have no guild, so there are no roles to look up
+        const role = channel.guild?.roles.cache.get(input.replace(/<|@|>|&/g, ''));
         return role ? `@${role.name}` : input;
       });
     return str;
@@ -841,7 +799,7 @@ class Util extends null {
   static getSortableGroupTypes(type) {
     switch (type) {
       case 'GUILD_TEXT':
-      case 'GUILD_ANNOUNCEMENT':
+      case 'GUILD_NEWS':
       case 'GUILD_FORUM':
         return TextSortableGroupTypes;
       case 'GUILD_VOICE':

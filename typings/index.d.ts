@@ -64,11 +64,10 @@ import {
   VoiceChannelEffectSendAnimationType,
   GatewayVoiceChannelEffectSendDispatchData,
 } from 'discord-api-types/v10';
-import { ChildProcess, ChildProcessWithoutNullStreams } from 'node:child_process';
+import { ChildProcessWithoutNullStreams } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { Agent } from 'node:http';
 import { Readable, Writable, Stream } from 'node:stream';
-import { MessagePort, Worker } from 'node:worker_threads';
 import { CookieJar } from 'tough-cookie';
 import { RtpPacket } from 'werift-rtp';
 import * as WebSocket from 'ws';
@@ -752,7 +751,6 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
   private actions: unknown;
   public authenticator: { generate(secret: string): string };
   private presence: ClientPresence;
-  private _eval(script: string): unknown;
   private _validateOptions(options: ClientOptions): void;
   public channels: ChannelManager;
   public readonly emojis: BaseGuildEmojiManager;
@@ -761,7 +759,6 @@ export class Client<Ready extends boolean = boolean> extends BaseClient {
   public readyAt: If<Ready, Date>;
   public readonly readyTimestamp: If<Ready, number>;
   public sweepers: Sweepers;
-  public shard: ShardClientUtil | null;
   public token: If<Ready, string, string | null>;
   public uptime: If<Ready, number>;
   public user: If<Ready, ClientUser>;
@@ -1057,7 +1054,7 @@ export class VoiceConnection extends EventEmitter {
     self_mute?: boolean;
     guild_id?: Snowflake | null;
     channel_id?: Snowflake | null;
-  }): Promise<Shard>;
+  }): void;
   private setSessionId(sessionId: string): void;
   private setTokenAndEndpoint(token: string, endpoint: string): void;
   private updateChannel(channel: VoiceChannel): void;
@@ -2206,7 +2203,6 @@ export interface WebEmbedOptions {
 export class WebEmbed {
   public constructor(data?: WebEmbedOptions);
   public author: MessageEmbedAuthor | null;
-  public baseURL: string | undefined;
   public color: number | null;
   public description: string | null;
   public image: MessageEmbedImage | null;
@@ -2227,6 +2223,7 @@ export class WebEmbed {
   public setProvider(options: MessageEmbedProvider | null): this;
   public setRedirect(url: string): this;
   public toString(): string;
+  public static baseURL: string;
   public static hiddenEmbed: string;
 }
 
@@ -2682,127 +2679,6 @@ export class Speaking extends BitField<SpeakingString> {
 }
 
 export type SpeakingString = 'SPEAKING' | 'SOUNDSHARE' | 'PRIORITY_SPEAKING';
-
-export interface ShardEventTypes {
-  spawn: [process: ChildProcess | Worker];
-  death: [process: ChildProcess | Worker];
-  disconnect: [];
-  ready: [];
-  reconnecting: [];
-  error: [error: Error];
-  message: [message: any];
-}
-
-/** @deprecated This will be removed in the next major version */
-export class Shard extends EventEmitter {
-  private constructor(manager: ShardingManager, id: number);
-  private _evals: Map<string, Promise<unknown>>;
-  private _exitListener: (...args: any[]) => void;
-  private _fetches: Map<string, Promise<unknown>>;
-  private _handleExit(respawn?: boolean, timeout?: number): void;
-  private _handleMessage(message: unknown): void;
-  private incrementMaxListeners(emitter: EventEmitter | ChildProcess): void;
-  private decrementMaxListeners(emitter: EventEmitter | ChildProcess): void;
-
-  public args: string[];
-  public execArgv: string[];
-  public env: unknown;
-  public id: number;
-  public manager: ShardingManager;
-  public process: ChildProcess | null;
-  public ready: boolean;
-  public worker: Worker | null;
-  public eval(script: string): Promise<unknown>;
-  public eval<T>(fn: (client: Client) => T): Promise<T>;
-  public eval<T, P>(fn: (client: Client, context: Serialized<P>) => T, context: P): Promise<T>;
-  public fetchClientValue(prop: string): Promise<unknown>;
-  public kill(): void;
-  public respawn(options?: { delay?: number; timeout?: number }): Promise<ChildProcess>;
-  public send(message: unknown): Promise<Shard>;
-  public spawn(timeout?: number): Promise<ChildProcess>;
-
-  public on<K extends keyof ShardEventTypes>(
-    event: K,
-    listener: (...args: ShardEventTypes[K]) => Awaitable<void>,
-  ): this;
-
-  public once<K extends keyof ShardEventTypes>(
-    event: K,
-    listener: (...args: ShardEventTypes[K]) => Awaitable<void>,
-  ): this;
-}
-
-/** @deprecated This will be removed in the next major version */
-export class ShardClientUtil {
-  private constructor(client: Client, mode: ShardingManagerMode);
-  private _handleMessage(message: unknown): void;
-  private _respond(type: string, message: unknown): void;
-  private incrementMaxListeners(emitter: EventEmitter | ChildProcess): void;
-  private decrementMaxListeners(emitter: EventEmitter | ChildProcess): void;
-
-  public client: Client;
-  public readonly count: number;
-  public readonly ids: number[];
-  public mode: ShardingManagerMode;
-  public parentPort: MessagePort | null;
-  public broadcastEval<T>(fn: (client: Client) => Awaitable<T>): Promise<Serialized<T>[]>;
-  public broadcastEval<T>(fn: (client: Client) => Awaitable<T>, options: { shard: number }): Promise<Serialized<T>>;
-  public broadcastEval<T, P>(
-    fn: (client: Client, context: Serialized<P>) => Awaitable<T>,
-    options: { context: P },
-  ): Promise<Serialized<T>[]>;
-  public broadcastEval<T, P>(
-    fn: (client: Client, context: Serialized<P>) => Awaitable<T>,
-    options: { context: P; shard: number },
-  ): Promise<Serialized<T>>;
-  public fetchClientValues(prop: string): Promise<unknown[]>;
-  public fetchClientValues(prop: string, shard: number): Promise<unknown>;
-  public respawnAll(options?: MultipleShardRespawnOptions): Promise<void>;
-  public send(message: unknown): Promise<void>;
-
-  public static singleton(client: Client, mode: ShardingManagerMode): ShardClientUtil;
-  public static shardIdForGuildId(guildId: Snowflake, shardCount: number): number;
-}
-
-/** @deprecated This will be removed in the next major version */
-export class ShardingManager extends EventEmitter {
-  public constructor(file: string, options?: ShardingManagerOptions);
-  private _performOnShards(method: string, args: unknown[]): Promise<unknown[]>;
-  private _performOnShards(method: string, args: unknown[], shard: number): Promise<unknown>;
-
-  public file: string;
-  public respawn: boolean;
-  public shardArgs: string[];
-  public shards: Collection<number, Shard>;
-  public token: string | null;
-  public totalShards: number | 'auto';
-  public shardList: number[] | 'auto';
-  public broadcast(message: unknown): Promise<Shard[]>;
-  public broadcastEval<T>(fn: (client: Client) => Awaitable<T>): Promise<Serialized<T>[]>;
-  public broadcastEval<T>(fn: (client: Client) => Awaitable<T>, options: { shard: number }): Promise<Serialized<T>>;
-  public broadcastEval<T, P>(
-    fn: (client: Client, context: Serialized<P>) => Awaitable<T>,
-    options: { context: P },
-  ): Promise<Serialized<T>[]>;
-  public broadcastEval<T, P>(
-    fn: (client: Client, context: Serialized<P>) => Awaitable<T>,
-    options: { context: P; shard: number },
-  ): Promise<Serialized<T>>;
-  public createShard(id: number): Shard;
-  public fetchClientValues(prop: string): Promise<unknown[]>;
-  public fetchClientValues(prop: string, shard: number): Promise<unknown>;
-  public respawnAll(options?: MultipleShardRespawnOptions): Promise<Collection<number, Shard>>;
-  public spawn(options?: MultipleShardSpawnOptions): Promise<Collection<number, Shard>>;
-
-  public on(event: 'shardCreate', listener: (shard: Shard) => Awaitable<void>): this;
-
-  public once(event: 'shardCreate', listener: (shard: Shard) => Awaitable<void>): this;
-}
-
-export interface FetchRecommendedShardsOptions {
-  guildsPerShard?: number;
-  multipleOf?: number;
-}
 
 export class SnowflakeUtil extends null {
   private constructor();
@@ -3280,10 +3156,7 @@ export class Util extends null {
   public static escapeNumberedList(text: string): string;
   public static escapeMaskedLink(text: string): string;
   public static cleanCodeBlockContent(text: string): string;
-  public static fetchRecommendedShards(token: string, options?: FetchRecommendedShardsOptions): Promise<number>;
   public static flatten(obj: unknown, ...props: Record<string, boolean | string>[]): unknown;
-  public static makeError(obj: MakeErrorOptions): Error;
-  public static makePlainError(err: Error): MakeErrorOptions;
   public static mergeDefault(def: unknown, given: unknown): unknown;
   public static moveElementInArray(array: unknown[], element: unknown, newIndex: number, offset?: boolean): number;
   public static parseEmoji(text: string): { animated: boolean; name: string; id: Snowflake | null } | null;
@@ -6561,12 +6434,6 @@ export interface LifetimeFilterOptions<K, V> {
   lifetime?: number;
 }
 
-export interface MakeErrorOptions {
-  name: string;
-  message: string;
-  stack: string;
-}
-
 export type MemberMention = UserMention | `<@!${Snowflake}>`;
 
 export type MembershipState = keyof typeof MembershipStates;
@@ -6859,18 +6726,6 @@ export interface ModalOptions {
   title: string;
 }
 
-export interface MultipleShardRespawnOptions {
-  shardDelay?: number;
-  respawnDelay?: number;
-  timeout?: number;
-}
-
-export interface MultipleShardSpawnOptions {
-  amount?: number | 'auto';
-  delay?: number;
-  timeout?: number;
-}
-
 export type NSFWLevel = keyof typeof NSFWLevels;
 
 export interface OverwriteData {
@@ -7140,18 +6995,6 @@ export interface SetParentOptions {
 export interface SetRolePositionOptions {
   relative?: boolean;
   reason?: string;
-}
-
-export type ShardingManagerMode = 'process' | 'worker';
-
-export interface ShardingManagerOptions {
-  totalShards?: number | 'auto';
-  shardList?: number[] | 'auto';
-  mode?: ShardingManagerMode;
-  respawn?: boolean;
-  shardArgs?: string[];
-  token?: string;
-  execArgv?: string[];
 }
 
 export { Snowflake };
@@ -7521,18 +7364,6 @@ export type WSEventType =
   | 'STAGE_INSTANCE_UPDATE'
   | 'STAGE_INSTANCE_DELETE'
   | 'GUILD_STICKERS_UPDATE';
-
-export type Serialized<T> = T extends symbol | bigint | (() => any)
-  ? never
-  : T extends number | string | boolean | undefined
-    ? T
-    : T extends { toJSON(): infer R }
-      ? R
-      : T extends ReadonlyArray<infer V>
-        ? Serialized<V>[]
-        : T extends ReadonlyMap<unknown, unknown> | ReadonlySet<unknown>
-          ? {}
-          : { [K in keyof T]: Serialized<T[K]> };
 
 //#endregion
 

@@ -1,6 +1,5 @@
 'use strict';
 
-const baseURL = 'https://webembed-sb.onrender.com/embed?';
 const hiddenCharter =
   '||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||||​||';
 const { RangeError } = require('../errors');
@@ -15,6 +14,13 @@ const Util = require('../util/Util');
  * - Description limit 350 characters
  */
 class WebEmbed {
+  /**
+   * The site that renders the embed link. It is a third-party host that sees all embed text, and it decides where
+   * `redirect` leads. Set this to your own host if you do not want that.
+   * @type {string}
+   */
+  static baseURL = 'https://webembed-sb.onrender.com/embed?';
+
   /**
    * @param {WebEmbed} [data={}] Raw data
    */
@@ -171,7 +177,7 @@ class WebEmbed {
     this.provider = data.provider
       ? {
           name: data.provider.name,
-          url: data.provider.name,
+          url: data.provider.url,
         }
       : null;
 
@@ -322,7 +328,7 @@ class WebEmbed {
   }
 
   toString() {
-    const url = new URL(baseURL);
+    const url = new URL(WebEmbed.baseURL);
     url.searchParams.set('image_type', this.imageType);
     if (this.title) {
       url.searchParams.set('title', this.title);
@@ -334,7 +340,7 @@ class WebEmbed {
       url.searchParams.set('url', this.url);
     }
     if (this.color) {
-      url.searchParams.set('color', `#${this.color.toString(16)}`);
+      url.searchParams.set('color', `#${this.color.toString(16).padStart(6, '0')}`);
     }
     if (this.image?.url) {
       url.searchParams.set('image', this.image.url);

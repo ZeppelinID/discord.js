@@ -1,4 +1,3 @@
-/* eslint-disable no-unreachable */
 'use strict';
 
 const process = require('node:process');
@@ -22,7 +21,6 @@ const SessionManager = require('../managers/SessionManager');
 const UserManager = require('../managers/UserManager');
 const UserNoteManager = require('../managers/UserNoteManager');
 const VoiceStateManager = require('../managers/VoiceStateManager');
-const ShardClientUtil = require('../sharding/ShardClientUtil');
 const ClientPresence = require('../structures/ClientPresence');
 const GuildPreview = require('../structures/GuildPreview');
 const GuildTemplate = require('../structures/GuildTemplate');
@@ -93,14 +91,6 @@ class Client extends BaseClient {
      * @type {VoiceStateManager}
      */
     this.voiceStates = new VoiceStateManager({ client: this });
-
-    /**
-     * Shard helpers for the client (only if the process was spawned from a {@link ShardingManager})
-     * @type {?ShardClientUtil}
-     */
-    this.shard = process.env.SHARDING_MANAGER
-      ? ShardClientUtil.singleton(this, process.env.SHARDING_MANAGER_MODE)
-      : null;
 
     /**
      * The user manager of this client
@@ -352,6 +342,9 @@ class Client extends BaseClient {
     if (this.sweepMessageInterval) clearInterval(this.sweepMessageInterval);
 
     this.sweepers.destroy();
+    // Close voice on our side only: its sockets and ffmpeg would keep the process alive
+    this.voice.connection?._close();
+    this.voice.connection = null;
     this.ws.destroy();
     this.token = null;
   }
@@ -598,6 +591,30 @@ class Client extends BaseClient {
   }
 
   /**
+   * Resolves with a cached item. Discord answers a REST call before the gateway event that adds the item to the
+   * cache, so when the item is not there yet this waits for that event.
+   * @param {Collection} cache The cache to look in
+   * @param {Snowflake} id The id of the item
+   * @param {string} event The client event emitted once the item is cached
+   * @param {number} [timeout=5000] The most time to wait, in milliseconds
+   * @returns {Promise<*>} The item, or `undefined` if it did not arrive in time
+   * @private
+   */
+  _waitForCached(cache, id, event, timeout = 5_000) {
+    if (cache.has(id)) return Promise.resolve(cache.get(id));
+    return new Promise(resolve => {
+      const done = () => {
+        clearTimeout(timer);
+        this.removeListener(event, check);
+        resolve(cache.get(id));
+      };
+      const check = () => cache.has(id) && done();
+      const timer = setTimeout(done, timeout);
+      this.on(event, check);
+    });
+  }
+
+  /**
    * Options for {@link Client#acceptInvite}.
    * @typedef {Object} AcceptInviteOptions
    * @property {boolean} [bypassOnboarding=true] Whether to bypass onboarding
@@ -628,11 +645,11 @@ class Client extends BaseClient {
     this.emit(Events.DEBUG, `[Invite > Guild ${i.guild?.id}] Joined`);
     // Guild
     if (i.guild?.id) {
-      const guild = this.guilds.cache.get(i.guild?.id);
       if (i.flags.has('GUEST')) {
         this.emit(Events.DEBUG, `[Invite > Guild ${i.guild?.id}] Guest invite`);
-        return guild;
+        return this.guilds.cache.get(i.guild.id);
       }
+      const guild = await this._waitForCached(this.guilds.cache, i.guild.id, Events.GUILD_CREATE);
       if (options.bypassOnboarding) {
         const onboardingData = await this.api.guilds[i.guild?.id].onboarding.get();
         // Onboarding
@@ -689,7 +706,7 @@ class Client extends BaseClient {
       }
       return guild;
     } else {
-      return this.channels.cache.has(i.channelId || data.channel?.id);
+      return this._waitForCached(this.channels.cache, i.channelId || data.channel?.id, Events.CHANNEL_CREATE);
     }
   }
 
@@ -700,7 +717,7 @@ class Client extends BaseClient {
    * @param {Snowflake} [paymentSourceId] Payment source id
    * @returns {Promise<any>}
    */
-  redeemNitro(nitro, channel, paymentSourceId) {
+  async redeemNitro(nitro, channel, paymentSourceId) {
     if (typeof nitro !== 'string') throw new Error('INVALID_NITRO');
     const nitroCode =
       nitro.match(/(discord.gift|discord.com|discordapp.com\/gifts)\/(\w{16,25})/) ||
@@ -733,7 +750,7 @@ class Client extends BaseClient {
       guild_id: "guildID",
     })
    */
-  authorizeURL(urlOAuth2, options = {}) {
+  async authorizeURL(urlOAuth2, options = {}) {
     // ! throw new Error('METHOD_WARNING');
     const url = new URL(urlOAuth2);
     if (!/^https:\/\/(?:canary\.|ptb\.)?discord\.com(?:\/api(?:\/v\d{1,2})?)?\/oauth2\/authorize\?/.test(urlOAuth2)) {
@@ -839,17 +856,6 @@ class Client extends BaseClient {
       }
       return results;
     });
-  }
-
-  /**
-   * Calls {@link https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/eval} on a script
-   * with the client as `this`.
-   * @param {string} script Script to eval
-   * @returns {*}
-   * @private
-   */
-  _eval(script) {
-    return eval(script);
   }
 
   /**

@@ -11,8 +11,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.js\" \"typings/**/*.ts\"",
     "test": "node --test",
-    "build": "npm run lint:fix && npm run format && npm run test:typings",
-    "test:typings": "! tsc --noEmit --skipLibCheck false 2>&1 | grep '^typings/'"
+    "build": "npm run lint:fix && npm run format && npm run test:typings && npm test",
+    "test:typings": "tsc --noEmit --skipLibCheck false"
   },
   "files": [
     "src",
@@ -47,7 +47,6 @@
     "@discordjs/collection": "^2.1.1",
     "@discordjs/formatters": "^0.6.2",
     "@sapphire/async-queue": "^1.5.5",
-    "@sapphire/shapeshift": "^5.0.0",
     "@types/ws": "^8.18.2",
     "discord-api-types": "^0.38.59",
     "impit": "^0.14.9",
