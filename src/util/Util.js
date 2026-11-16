@@ -844,6 +844,26 @@ class Util extends null {
     return res;
   }
 
+  // Uploads files resolved by MessagePayload#resolveFiles, and returns them as message attachments in file order
+  static async uploadAttachments(client, channelId, files) {
+    const attachments = await Util.getUploadURL(client, channelId, files);
+    const uploaded = await Promise.all(
+      attachments.map(async attachment => {
+        const file = files[attachment.id];
+        await Util.uploadFile(file.file, attachment.upload_url, client);
+        return {
+          id: attachment.id,
+          filename: file.name,
+          uploaded_filename: attachment.upload_filename,
+          description: file.description,
+          duration_secs: file.duration_secs,
+          waveform: file.waveform,
+        };
+      }),
+    );
+    return uploaded.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+  }
+
   /**
    * Lazily evaluates a callback function (yea it's v14 :yay:)
    * @param {Function} cb The callback to lazily evaluate
@@ -868,37 +888,27 @@ class Util extends null {
 
   static createPromiseInteraction(client, nonce, timeoutMs = 5_000, isHandlerDeferUpdate = false, parent) {
     return new Promise((resolve, reject) => {
-      // Waiting for MsgCreate / ModalCreate
-      let dataFromInteractionSuccess;
-      let dataFromNormalEvent;
-      const handler = data => {
-        // UnhandledPacket
-        if (isHandlerDeferUpdate && data.d?.nonce == nonce && data.t == 'INTERACTION_SUCCESS') {
-          // Interaction#deferUpdate
-          client.removeListener(Events.MESSAGE_CREATE, handler);
-          client.removeListener(Events.UNHANDLED_PACKET, handler);
-          client.removeListener(Events.INTERACTION_MODAL_CREATE, handler);
-          dataFromInteractionSuccess = parent;
-        }
-        if (data.nonce !== nonce) return;
+      // Waiting for MsgCreate / ModalCreate. INTERACTION_SUCCESS alone (Interaction#deferUpdate) resolves with
+      // `parent` when the time is up: a reply can still follow it, and nothing says whether one will
+      let succeeded = false;
+      const stop = () => {
         clearTimeout(timeout);
         client.removeListener(Events.MESSAGE_CREATE, handler);
         client.removeListener(Events.INTERACTION_MODAL_CREATE, handler);
         if (isHandlerDeferUpdate) client.removeListener(Events.UNHANDLED_PACKET, handler);
         client.decrementMaxListeners();
-        dataFromNormalEvent = data;
+      };
+      const handler = data => {
+        // UnhandledPacket
+        if (isHandlerDeferUpdate && data.d?.nonce == nonce && data.t == 'INTERACTION_SUCCESS') succeeded = true;
+        if (data.nonce !== nonce) return;
+        stop();
         resolve(data);
       };
       const timeout = setTimeout(() => {
-        if (dataFromInteractionSuccess || dataFromNormalEvent) {
-          resolve(dataFromNormalEvent || dataFromInteractionSuccess);
-          return;
-        }
-        client.removeListener(Events.MESSAGE_CREATE, handler);
-        client.removeListener(Events.INTERACTION_MODAL_CREATE, handler);
-        if (isHandlerDeferUpdate) client.removeListener(Events.UNHANDLED_PACKET, handler);
-        client.decrementMaxListeners();
-        reject(new DiscordError('INTERACTION_FAILED'));
+        stop();
+        if (succeeded) resolve(parent);
+        else reject(new DiscordError('INTERACTION_FAILED'));
       }, timeoutMs).unref();
       client.incrementMaxListeners();
       client.on(Events.MESSAGE_CREATE, handler);

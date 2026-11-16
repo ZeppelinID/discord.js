@@ -293,9 +293,6 @@ exports.VoiceOpcodes = {
  * * API_RESPONSE: apiResponse
  * * API_REQUEST: apiRequest
  * * CLIENT_READY: ready
- * * APPLICATION_COMMAND_CREATE: applicationCommandCreate (deprecated)
- * * APPLICATION_COMMAND_DELETE: applicationCommandDelete (deprecated)
- * * APPLICATION_COMMAND_UPDATE: applicationCommandUpdate (deprecated)
  * * APPLICATION_COMMAND_PERMISSIONS_UPDATE: applicationCommandPermissionsUpdate
  * * AUTO_MODERATION_ACTION_EXECUTION: autoModerationActionExecution
  * * AUTO_MODERATION_RULE_CREATE: autoModerationRuleCreate
@@ -389,9 +386,6 @@ exports.Events = {
   API_RESPONSE: 'apiResponse',
   API_REQUEST: 'apiRequest',
   CLIENT_READY: 'ready',
-  APPLICATION_COMMAND_CREATE: 'applicationCommandCreate',
-  APPLICATION_COMMAND_DELETE: 'applicationCommandDelete',
-  APPLICATION_COMMAND_UPDATE: 'applicationCommandUpdate',
   APPLICATION_COMMAND_PERMISSIONS_UPDATE: 'applicationCommandPermissionsUpdate',
   AUTO_MODERATION_ACTION_EXECUTION: 'autoModerationActionExecution',
   AUTO_MODERATION_RULE_CREATE: 'autoModerationRuleCreate',

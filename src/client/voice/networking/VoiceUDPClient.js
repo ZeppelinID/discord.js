@@ -92,6 +92,8 @@ class VoiceConnectionUDPClient extends EventEmitter {
   }
 
   async createUDPSocket(address) {
+    // A voice WebSocket reconnect brings a new READY here: the previous socket must not stay open
+    if (this.socket) this.shutdown();
     this.discordAddress = address;
     const socket = (this.socket = udp.createSocket('udp4'));
     socket.on('error', e => {

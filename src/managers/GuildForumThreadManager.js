@@ -3,7 +3,7 @@
 const ThreadManager = require('./ThreadManager');
 const { TypeError } = require('../errors');
 const MessagePayload = require('../structures/MessagePayload');
-const { resolveAutoArchiveMaxLimit, getUploadURL, uploadFile } = require('../util/Util');
+const { resolveAutoArchiveMaxLimit, uploadAttachments } = require('../util/Util');
 
 /**
  * Manages API methods for threads in forum channels and stores their cache.
@@ -69,22 +69,7 @@ class GuildForumThreadManager extends ThreadManager {
     }
 
     const { data: body, files } = await messagePayload.resolveFiles();
-
-    // New API
-    const attachments = await getUploadURL(this.client, this.channel.id, files);
-    const requestPromises = attachments.map(async attachment => {
-      await uploadFile(files[attachment.id].file, attachment.upload_url, this.client);
-      return {
-        id: attachment.id,
-        filename: files[attachment.id].name,
-        uploaded_filename: attachment.upload_filename,
-        description: files[attachment.id].description,
-        duration_secs: files[attachment.id].duration_secs,
-        waveform: files[attachment.id].waveform,
-      };
-    });
-    const attachmentsData = await Promise.all(requestPromises);
-    attachmentsData.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+    const attachmentsData = await uploadAttachments(this.client, this.channel.id, files);
 
     if (autoArchiveDuration === 'MAX') autoArchiveDuration = resolveAutoArchiveMaxLimit(this.channel.guild);
 

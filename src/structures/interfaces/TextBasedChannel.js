@@ -192,23 +192,7 @@ class TextBasedChannel {
     }
 
     const { data, files } = await messagePayload.resolveFiles();
-    // New API
-    const attachments = await Util.getUploadURL(this.client, this.id, files);
-    const requestPromises = attachments.map(async attachment => {
-      await Util.uploadFile(files[attachment.id].file, attachment.upload_url, this.client);
-      return {
-        id: attachment.id,
-        filename: files[attachment.id].name,
-        uploaded_filename: attachment.upload_filename,
-        description: files[attachment.id].description,
-        duration_secs: files[attachment.id].duration_secs,
-        waveform: files[attachment.id].waveform,
-      };
-    });
-    const attachmentsData = await Promise.all(requestPromises);
-    attachmentsData.sort((a, b) => parseInt(a.id) - parseInt(b.id));
-    data.attachments = attachmentsData;
-    // Empty Files
+    data.attachments = await Util.uploadAttachments(this.client, this.id, files);
     const d = await this.client.api.channels[this.id].messages.post({ data });
 
     return this.messages.cache.get(d.id) ?? this.messages._add(d);

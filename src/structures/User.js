@@ -561,24 +561,6 @@ class User extends Base {
   }
 
   /**
-   * Send Friend Request to the user
-   * @type {boolean}
-   * @returns {Promise<boolean>}
-   */
-  sendFriendRequest() {
-    return this.client.relationships.sendFriendRequest(this);
-  }
-
-  /**
-   * Unblock / Unfriend / Cancels a friend request
-   * @type {boolean}
-   * @returns {Promise<boolean>}
-   */
-  deleteRelationship() {
-    return this.client.relationships.deleteRelationship(this);
-  }
-
-  /**
    * Check relationship status (Client -> User)
    * @type {RelationshipType}
    * @readonly

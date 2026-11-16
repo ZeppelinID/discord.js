@@ -2,7 +2,7 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { GuildChannel, Util, WebEmbed } = require('../src');
+const { Client, GuildAuditLogs, GuildChannel, Util, WebEmbed } = require('../src');
 
 test('WebEmbed keeps the leading zeros of its color and the url of its provider', () => {
   const colorOf = color => new URL(new WebEmbed().setColor(color).toString()).searchParams.get('color');
@@ -60,4 +60,16 @@ test('mergeDefault copies plain objects and keeps everything else as given', () 
   assert.equal(merged.agent, agent);
   assert.equal(merged.fn, given.fn);
   assert.equal(merged.extra, true);
+});
+
+test('audit logs still build the application commands they list', t => {
+  const client = new Client();
+  t.after(() => client.destroy());
+  const guild = { id: '123456789012345678', client };
+  const command = { id: '1', application_id: '2', name: 'ping', description: 'Ping', type: 1, version: '3' };
+  const data = { application_commands: [command], auto_moderation_rules: [], audit_log_entries: [] };
+
+  const logs = new GuildAuditLogs(guild, data);
+  assert.equal(logs.applicationCommands.get('1').name, 'ping');
+  assert.equal(logs.applicationCommands.get('1').guildId, guild.id);
 });

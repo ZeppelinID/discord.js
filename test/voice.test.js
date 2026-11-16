@@ -101,3 +101,36 @@ test('secrets are hidden in the voice WebSocket debug output', async () => {
   assert.ok(!logged.includes('VOICE.TOKEN'), 'voice token was logged');
   assert.ok(!logged.includes('7,8,9'), 'voice secret key was logged');
 });
+
+test('a voice reconnect gets its attempts back and does not leave the old UDP socket open', async t => {
+  const server = dgram.createSocket('udp4');
+  t.after(() => server.close());
+  server.bind(0, '127.0.0.1');
+  await once(server, 'listening');
+  const connection = voiceConnectionStub(server.address().port);
+  connection.setVideoStatus = () => {};
+
+  // Without the reset, five connects over a whole session used up the attempts for good. The working
+  // connection counts as one attempt, so the first retry after a drop still waits 1 s
+  const voiceWs = new VoiceWebSocket(connection);
+  voiceWs.attempts = 5;
+  voiceWs.onPacket({ op: VoiceOpcodes.READY, d: {} });
+  assert.equal(voiceWs.attempts, 1);
+
+  // Every READY creates the UDP socket again
+  const udp = new VoiceUDP(connection);
+  t.after(() => udp.shutdown());
+  await udp.createUDPSocket('127.0.0.1');
+  const first = udp.socket;
+  t.after(() => {
+    // An old socket left open would keep the test run alive, so a regression must close it to fail cleanly
+    try {
+      first.close();
+    } catch {
+      // Already closed, as it should be
+    }
+  });
+  await udp.createUDPSocket('127.0.0.1');
+  assert.notEqual(udp.socket, first);
+  assert.throws(() => first.address(), { code: 'ERR_SOCKET_DGRAM_NOT_RUNNING' }, 'the old socket is still open');
+});

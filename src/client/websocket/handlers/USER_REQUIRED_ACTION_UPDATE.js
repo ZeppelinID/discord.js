@@ -9,28 +9,8 @@ module.exports = (client, { d: data }) => {
       break;
     }
     case 'AGREEMENTS': {
-      msg = 'You need to accept the new Terms of Service and Privacy Policy.';
-      // https://discord.com/api/v9/users/@me/agreements
-      client.api
-        .users('@me')
-        .agreements.patch({
-          data: {
-            terms: true,
-            privacy: true,
-          },
-        })
-        .then(() => {
-          client.emit(
-            'debug',
-            '[USER_REQUIRED_ACTION] Successfully accepted the new Terms of Service and Privacy Policy.',
-          );
-        })
-        .catch(e => {
-          client.emit(
-            'debug',
-            `[USER_REQUIRED_ACTION] Failed to accept the new Terms of Service and Privacy Policy: ${e}`,
-          );
-        });
+      // Only the account owner can agree to new terms, so the library does not accept them on their behalf
+      msg = 'You need to accept the new Terms of Service and Privacy Policy in the Discord app.';
       break;
     }
     case 'REQUIRE_CAPTCHA': {

@@ -7,6 +7,7 @@ const { setImmediate } = require('node:timers');
 const { setTimeout: sleep } = require('node:timers/promises');
 const test = require('node:test');
 const { Message, Modal, Util } = require('../src');
+const BaseClient = require('../src/client/BaseClient');
 const TextBasedChannel = require('../src/structures/interfaces/TextBasedChannel');
 
 // A client that only knows how to send interactions; `post` decides whether the request works
@@ -137,5 +138,36 @@ test('slash command names that Discord would reject fail before any request', as
       { code: 'SLASH_COMMAND_NAME_INVALID' },
       JSON.stringify(name),
     );
+  }
+});
+
+test('a reply after the success packet is returned, and every wait gives its listener back', async t => {
+  // Shorten the reply timeout, as above
+  const original = Util.createPromiseInteraction;
+  Util.createPromiseInteraction = (client, nonce, _timeout, ...rest) => original.call(Util, client, nonce, 30, ...rest);
+  t.after(() => {
+    Util.createPromiseInteraction = original;
+  });
+
+  // Only buttons, select menus and modals listen for the success packet
+  for (const [name, call] of Object.entries(entryPoints).filter(([key]) => key !== 'sendSlash')) {
+    // With a reply (the bot answered with a message), then without one (the bot only updated the message)
+    for (const replies of [true, false]) {
+      const client = makeClient(({ data }) => {
+        setImmediate(() => {
+          client.emit('unhandledPacket', { t: 'INTERACTION_SUCCESS', d: { nonce: data.nonce } });
+          if (replies) client.emit('messageCreate', { nonce: data.nonce, content: name });
+        });
+        return Promise.resolve();
+      });
+      client.incrementMaxListeners = BaseClient.prototype.incrementMaxListeners;
+      client.decrementMaxListeners = BaseClient.prototype.decrementMaxListeners;
+      const limit = client.getMaxListeners();
+
+      const result = await call(client); // eslint-disable-line no-await-in-loop
+      if (replies) assert.equal(result.content, name, `${name}: the reply was lost`);
+      else assert.equal(result.client, client, `${name}: the clicked message or modal must come back`);
+      assert.equal(client.getMaxListeners(), limit, `${name}: the listener limit kept growing`);
+    }
   }
 });

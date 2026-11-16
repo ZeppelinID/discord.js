@@ -353,7 +353,6 @@ export abstract class Application extends Base {
   public botPublic: boolean | null;
   /** @deprecated */
   public botRequireCodeGrant: boolean | null;
-  public commands: ApplicationCommandManager;
   public cover: string | null;
   public flags: Readonly<ApplicationFlags>;
   public guildId: Snowflake | null;
@@ -437,36 +436,13 @@ export class ApplicationCommand<PermissionsFetchType = {}> extends Base {
   public dmPermission: boolean | null;
   public guild: Guild | null;
   public guildId: Snowflake | null;
-  public readonly manager: ApplicationCommandManager;
   public id: Snowflake;
   public name: string;
   public nameLocalizations: LocalizationMap | null;
   public nameLocalized: string | null;
   public options: (ApplicationCommandOption & { nameLocalized?: string; descriptionLocalized?: string })[];
-  public permissions: ApplicationCommandPermissionsManager<
-    PermissionsFetchType,
-    PermissionsFetchType,
-    PermissionsFetchType,
-    Guild | null,
-    Snowflake
-  >;
   public type: ApplicationCommandType;
   public version: Snowflake;
-  public delete(): Promise<ApplicationCommand<PermissionsFetchType>>;
-  public edit(data: Partial<ApplicationCommandData>): Promise<ApplicationCommand<PermissionsFetchType>>;
-  public setName(name: string): Promise<ApplicationCommand<PermissionsFetchType>>;
-  public setNameLocalizations(nameLocalizations: LocalizationMap): Promise<ApplicationCommand<PermissionsFetchType>>;
-  public setDescription(description: string): Promise<ApplicationCommand<PermissionsFetchType>>;
-  public setDescriptionLocalizations(
-    descriptionLocalizations: LocalizationMap,
-  ): Promise<ApplicationCommand<PermissionsFetchType>>;
-  /** @deprecated Use {@link setDefaultMemberPermissions} and {@link setDMPermission} instead. */
-  public setDefaultPermission(defaultPermission?: boolean): Promise<ApplicationCommand<PermissionsFetchType>>;
-  public setDefaultMemberPermissions(
-    defaultMemberPermissions: PermissionResolvable | null,
-  ): Promise<ApplicationCommand<PermissionsFetchType>>;
-  public setDMPermission(dmPermission?: boolean): Promise<ApplicationCommand<PermissionsFetchType>>;
-  public setOptions(options: ApplicationCommandOptionData[]): Promise<ApplicationCommand<PermissionsFetchType>>;
   public equals(
     command: ApplicationCommand | ApplicationCommandData | RawApplicationCommandData,
     enforceOptionorder?: boolean,
@@ -3114,8 +3090,6 @@ export class User extends PartialTextBasedChannel(Base) {
   public setNote(note: string | null | undefined): Promise<this>;
   public toString(): UserMention;
   public getProfile(guildId?: Snowflake): Promise<any>;
-  public sendFriendRequest(): Promise<boolean>;
-  public deleteRelationship(): Promise<boolean>;
 }
 
 export class UserFlags extends BitField<UserFlagsString> {
@@ -3646,102 +3620,6 @@ export abstract class CachedManager<K, Holds, R> extends DataManager<K, Holds, R
   private _add(data: unknown, cache?: boolean, { id, extras }?: { id: K; extras: unknown[] }): Holds;
 }
 
-// Builders (e.g. from @discordjs/builders) are accepted through their toJSON(), like the runtime check
-export type ApplicationCommandDataResolvable =
-  | ApplicationCommandData
-  | RESTPostAPIApplicationCommandsJSONBody
-  | { toJSON(): RESTPostAPIApplicationCommandsJSONBody };
-
-export class ApplicationCommandManager<
-  ApplicationCommandScope = ApplicationCommand<{ guild: GuildResolvable }>,
-  PermissionsOptionsExtras = { guild: GuildResolvable },
-  PermissionsGuildType = null,
-> extends CachedManager<Snowflake, ApplicationCommandScope, ApplicationCommandResolvable> {
-  protected constructor(client: Client, iterable?: Iterable<unknown>);
-  public permissions: ApplicationCommandPermissionsManager<
-    { command?: ApplicationCommandResolvable } & PermissionsOptionsExtras,
-    { command: ApplicationCommandResolvable } & PermissionsOptionsExtras,
-    PermissionsOptionsExtras,
-    PermissionsGuildType,
-    null
-  >;
-  private commandPath({ id, guildId }: { id?: Snowflake; guildId?: Snowflake }): unknown;
-  public create(command: ApplicationCommandDataResolvable, guildId?: Snowflake): Promise<ApplicationCommandScope>;
-  public delete(command: ApplicationCommandResolvable, guildId?: Snowflake): Promise<ApplicationCommandScope | null>;
-  public edit(
-    command: ApplicationCommandResolvable,
-    data: Partial<ApplicationCommandDataResolvable>,
-  ): Promise<ApplicationCommandScope>;
-  public edit(
-    command: ApplicationCommandResolvable,
-    data: Partial<ApplicationCommandDataResolvable>,
-    guildId: Snowflake,
-  ): Promise<ApplicationCommand>;
-  public fetch(
-    id: Snowflake,
-    options: FetchApplicationCommandOptions & { guildId: Snowflake },
-  ): Promise<ApplicationCommand>;
-  public fetch(options: FetchApplicationCommandOptions): Promise<Collection<string, ApplicationCommandScope>>;
-  public fetch(id: Snowflake, options?: FetchApplicationCommandOptions): Promise<ApplicationCommandScope>;
-  public fetch(
-    id?: Snowflake,
-    options?: FetchApplicationCommandOptions,
-  ): Promise<Collection<Snowflake, ApplicationCommandScope>>;
-  public set(commands: ApplicationCommandDataResolvable[]): Promise<Collection<Snowflake, ApplicationCommandScope>>;
-  public set(
-    commands: ApplicationCommandDataResolvable[],
-    guildId: Snowflake,
-  ): Promise<Collection<Snowflake, ApplicationCommand>>;
-  private static transformCommand(command: ApplicationCommandDataResolvable): RESTPostAPIApplicationCommandsJSONBody;
-}
-
-export class ApplicationCommandPermissionsManager<
-  BaseOptions,
-  FetchSingleOptions,
-  FullPermissionsOptions,
-  GuildType,
-  CommandIdType,
-> extends BaseManager {
-  private constructor(manager: ApplicationCommandManager | ApplicationCommand);
-  private manager: ApplicationCommandManager | ApplicationCommand;
-
-  public client: Client;
-  public commandId: CommandIdType;
-  public guild: GuildType;
-  public guildId: Snowflake | null;
-  public add(
-    options: FetchSingleOptions & { permissions: ApplicationCommandPermissionData[] },
-  ): Promise<ApplicationCommandPermissions[]>;
-  public has(options: FetchSingleOptions & { permissionId: UserResolvable | RoleResolvable }): Promise<boolean>;
-  public fetch(options: FetchSingleOptions): Promise<ApplicationCommandPermissions[]>;
-  public fetch(options: BaseOptions): Promise<Collection<Snowflake, ApplicationCommandPermissions[]>>;
-  public remove(
-    options:
-      | (FetchSingleOptions & {
-          users: UserResolvable | UserResolvable[];
-          roles?: RoleResolvable | RoleResolvable[];
-        })
-      | (FetchSingleOptions & {
-          users?: UserResolvable | UserResolvable[];
-          roles: RoleResolvable | RoleResolvable[];
-        }),
-  ): Promise<ApplicationCommandPermissions[]>;
-  public set(
-    options: FetchSingleOptions & { permissions: ApplicationCommandPermissionData[] },
-  ): Promise<ApplicationCommandPermissions[]>;
-  public set(
-    options: FullPermissionsOptions & {
-      fullPermissions: GuildApplicationCommandPermissionData[];
-    },
-  ): Promise<Collection<Snowflake, ApplicationCommandPermissions[]>>;
-  private permissionsPath(guildId: Snowflake, commandId?: Snowflake): unknown;
-  private static transformPermissions(
-    permissions: ApplicationCommandPermissionData,
-    received: true,
-  ): Omit<APIApplicationCommandPermission, 'type'> & { type: keyof ApplicationCommandPermissionTypes };
-  private static transformPermissions(permissions: ApplicationCommandPermissionData): APIApplicationCommandPermission;
-}
-
 export class BaseGuildEmojiManager extends CachedManager<Snowflake, GuildEmoji, EmojiResolvable> {
   protected constructor(client: Client, iterable?: Iterable<RawGuildEmojiData>);
   public resolveIdentifier(emoji: EmojiIdentifierResolvable): string | null;
@@ -3774,11 +3652,7 @@ export class RelationshipManager extends BaseManager {
   public toJSON(): { type: RelationshipTypes; since: string; nickname: string | null | undefined; id: Snowflake }[];
   public resolveId(user: UserResolvable): Snowflake | undefined;
   public fetch(user?: UserResolvable, options?: BaseFetchOptions): Promise<RelationshipTypes | RelationshipManager>;
-  public deleteRelationship(user: UserResolvable): Promise<boolean>;
-  public sendFriendRequest(options: UserResolvable): Promise<boolean>;
-  public addFriend(user: UserResolvable): Promise<boolean>;
   public setNickname(user: UserResolvable, nickname: string | null | undefined): Promise<boolean>;
-  public addBlocked(user: UserResolvable): Promise<boolean>;
 }
 
 export class UserNoteManager extends BaseManager {
@@ -3788,8 +3662,6 @@ export class UserNoteManager extends BaseManager {
   public updateNote(id: Snowflake, note: string | null | undefined): Promise<this>;
   public fetch(user: UserResolvable, options?: BaseFetchOptions): Promise<string>;
 }
-
-export type FetchGuildApplicationCommandFetchOptions = Omit<FetchApplicationCommandOptions, 'guildId'>;
 
 export class ClientUserSettingManager extends BaseManager {
   private constructor(client: Client);
@@ -5017,7 +4889,6 @@ export type BitFieldResolvable<T extends string, N extends number | bigint> =
 export type BufferResolvable = Buffer | string;
 
 export interface Caches {
-  ApplicationCommandManager: [manager: typeof ApplicationCommandManager, holds: typeof ApplicationCommand];
   AutoModerationRuleManager: [manager: typeof AutoModerationRuleManager, holds: typeof AutoModerationRule];
   BaseGuildEmojiManager: [manager: typeof BaseGuildEmojiManager, holds: typeof GuildEmoji];
   GuildEmojiManager: [manager: typeof GuildEmojiManager, holds: typeof GuildEmoji];
@@ -5148,12 +5019,6 @@ export interface BaseClientEvents {
 }
 
 export interface ClientEvents extends BaseClientEvents {
-  /** @deprecated See [this issue](https://github.com/discord/discord-api-docs/issues/3690) for more information. */
-  applicationCommandCreate: [command: ApplicationCommand];
-  /** @deprecated See [this issue](https://github.com/discord/discord-api-docs/issues/3690) for more information. */
-  applicationCommandDelete: [command: ApplicationCommand];
-  /** @deprecated See [this issue](https://github.com/discord/discord-api-docs/issues/3690) for more information. */
-  applicationCommandUpdate: [oldCommand: ApplicationCommand | null, newCommand: ApplicationCommand];
   applicationCommandPermissionsUpdate: [data: ApplicationCommandPermissionsUpdateData];
   /** @deprecated This event is not received by user accounts. */
   autoModerationActionExecution: [autoModerationActionExecution: AutoModerationActionExecution];
@@ -5453,13 +5318,7 @@ export interface ConstantsEvents {
   API_RESPONSE: 'apiResponse';
   API_REQUEST: 'apiRequest';
   CLIENT_READY: 'ready';
-  /** @deprecated See [this issue](https://github.com/discord/discord-api-docs/issues/3690) for more information. */
-  APPLICATION_COMMAND_CREATE: 'applicationCommandCreate';
-  /** @deprecated See [this issue](https://github.com/discord/discord-api-docs/issues/3690) for more information. */
-  APPLICATION_COMMAND_DELETE: 'applicationCommandDelete';
   APPLICATION_COMMAND_PERMISSIONS_UPDATE: 'applicationCommandPermissionsUpdate';
-  /** @deprecated See [this issue](https://github.com/discord/discord-api-docs/issues/3690) for more information. */
-  APPLICATION_COMMAND_UPDATE: 'applicationCommandUpdate';
   /** @deprecated This event is not received by user accounts. */
   AUTO_MODERATION_ACTION_EXECUTION: 'autoModerationActionExecution';
   /** @deprecated This event is not received by user accounts. */
@@ -5727,12 +5586,6 @@ export interface EscapeMarkdownOptions {
 }
 
 export type ExplicitContentFilterLevel = keyof typeof ExplicitContentFilterLevels;
-
-export interface FetchApplicationCommandOptions extends BaseFetchOptions {
-  guildId?: Snowflake;
-  locale?: LocaleString;
-  withLocalizations?: boolean;
-}
 
 export interface FetchArchivedThreadOptions {
   type?: 'public' | 'private';

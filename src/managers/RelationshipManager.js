@@ -127,19 +127,6 @@ class RelationshipManager extends BaseManager {
   }
 
   /**
-   * Resolves a {@link UserResolvable} to a {@link User} username.
-   * @param {UserResolvable} user The UserResolvable to identify
-   * @returns {?string}
-   */
-  resolveUsername(user) {
-    if (user instanceof ThreadMember) return user.member.user.username;
-    if (user instanceof GuildMember) return user.user.username;
-    if (user instanceof Message) return user.author.username;
-    if (user instanceof User) return user.username;
-    return user;
-  }
-
-  /**
    * Obtains a user from Discord, or the user cache if it's already available.
    * @param {UserResolvable} [user] The user to fetch
    * @param {BaseFetchOptions} [options] Additional options for this fetch
@@ -163,76 +150,6 @@ class RelationshipManager extends BaseManager {
   }
 
   /**
-   * Deletes a friend / blocked relationship with a client user or cancels a friend request.
-   * @param {UserResolvable} user Target
-   * @returns {Promise<boolean>}
-   */
-  async deleteRelationship(user) {
-    throw new Error('Risky action, not finished yet.');
-    // eslint-disable-next-line no-unreachable
-    const id = this.resolveId(user);
-    if (
-      ![RelationshipTypes.FRIEND, RelationshipTypes.BLOCKED, RelationshipTypes.PENDING_OUTGOING].includes(
-        this.cache.get(id),
-      )
-    ) {
-      return Promise.resolve(false);
-    }
-    await this.client.api.users['@me'].relationships[id].delete({
-      DiscordContext: { location: 'ContextMenu' },
-    });
-    return true;
-  }
-
-  /**
-   * Sends a friend request.
-   * @param {UserResolvable} options Target (User Object, Username, User Id)
-   * @returns {Promise<boolean>}
-   */
-  async sendFriendRequest(options) {
-    throw new Error('Risky action, not finished yet.');
-    // eslint-disable-next-line no-unreachable
-    const id = this.resolveId(options);
-    if (id) {
-      await this.client.api.users['@me'].relationships[id].put({
-        data: {},
-        DiscordContext: { location: 'ContextMenu' },
-      });
-    } else {
-      const username = this.resolveUsername(options);
-      await this.client.api.users['@me'].relationships.post({
-        versioned: true,
-        data: {
-          username,
-          discriminator: null,
-        },
-        DiscordContext: { location: 'Add Friend' },
-      });
-    }
-    return true;
-  }
-
-  /**
-   * Accepts a friend request.
-   * @param {UserResolvable} user The user to add as a friend
-   * @returns {Promise<boolean>}
-   */
-  async addFriend(user) {
-    throw new Error('Risky action, not finished yet.');
-    // eslint-disable-next-line no-unreachable
-    const id = this.resolveId(user);
-    // Check if already friends
-    if (this.cache.get(id) === RelationshipTypes.FRIEND) return Promise.resolve(false);
-    // Check if outgoing request
-    if (this.cache.get(id) === RelationshipTypes.PENDING_OUTGOING) return Promise.resolve(false);
-    await this.client.api.users['@me'].relationships[id].put({
-      data: { confirm_stranger_request: true },
-      DiscordContext: { location: 'Friends' },
-    });
-    return true;
-  }
-
-  /**
    * Changes the nickname of a friend.
    * @param {UserResolvable} user The user to change the nickname
    * @param {?string} nickname New nickname
@@ -251,26 +168,6 @@ class RelationshipManager extends BaseManager {
     } else {
       this.friendNicknames.delete(id);
     }
-    return true;
-  }
-
-  /**
-   * Blocks a user.
-   * @param {UserResolvable} user User to block
-   * @returns {Promise<boolean>}
-   */
-  async addBlocked(user) {
-    throw new Error('Risky action, not finished yet.');
-    // eslint-disable-next-line no-unreachable
-    const id = this.resolveId(user);
-    // Check
-    if (this.cache.get(id) === RelationshipTypes.BLOCKED) return Promise.resolve(false);
-    await this.client.api.users['@me'].relationships[id].put({
-      data: {
-        type: RelationshipTypes.BLOCKED,
-      },
-      DiscordContext: { location: 'ContextMenu' },
-    });
     return true;
   }
 }

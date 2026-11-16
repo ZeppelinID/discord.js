@@ -174,6 +174,8 @@ class VoiceWebSocket extends EventEmitter {
         this.setHeartbeat(packet.d.heartbeat_interval);
         break;
       case VoiceOpcodes.READY:
+        // The connection works: it counts as the first attempt, so a later drop waits 1 s and gets four more tries
+        this.attempts = 1;
         /**
          * Emitted once the voice WebSocket receives the ready packet.
          * @param {Object} packet The received packet
