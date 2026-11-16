@@ -1,6 +1,17 @@
 'use strict';
 
+const { TypeError } = require('../errors');
+
 const noop = () => {}; // eslint-disable-line no-empty-function
+// A route part must stay one path segment. The HTTP client resolves "../" and "%2e%2e", so a part like
+// "../users/@me" taken from user text would call a different endpoint with the account token.
+const unsafeRoutePart = /^(?:\.|%2e){1,2}$|[/\\?#]|%2f|%5c/i;
+
+function checkRoutePart(part) {
+  if (unsafeRoutePart.test(String(part))) throw new TypeError('INVALID_ROUTE_PART', part);
+  return part;
+}
+
 const methods = ['get', 'post', 'delete', 'patch', 'put'];
 const reflectors = [
   'toString',
@@ -39,11 +50,11 @@ function buildRoute(manager) {
             ),
           );
       }
-      route.push(name);
+      route.push(checkRoutePart(name));
       return new Proxy(noop, handler);
     },
     apply(target, _, args) {
-      route.push(...args.filter(x => x != null)); // eslint-disable-line eqeqeq
+      route.push(...args.filter(x => x != null).map(checkRoutePart)); // eslint-disable-line eqeqeq
       return new Proxy(noop, handler);
     },
   };

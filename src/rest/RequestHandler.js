@@ -208,8 +208,8 @@ class RequestHandler {
     try {
       res = await request.make(captchaKey, captchaToken);
     } catch (error) {
-      // Retry the specified number of times for request abortions
-      if (request.retries === this.manager.client.options.retryLimit) {
+      // Retry the specified number of times for request abortions (the counter is shared with captcha and 2FA retries)
+      if (request.retries >= this.manager.client.options.retryLimit) {
         throw new HTTPError(error.message, error.constructor.name, error.status, request);
       }
 
@@ -413,8 +413,7 @@ class RequestHandler {
               `[Request Handler] ${data.message}
     Method  : ${request.method}
     Path    : ${request.path}
-    Route   : ${request.route}
-    mfaCode : ${otp}`,
+    Route   : ${request.route}`,
             );
             // Get ticket
             const mfaData = data.mfa;
@@ -440,7 +439,7 @@ class RequestHandler {
     // Handle 5xx responses
     if (res.status >= 500 && res.status < 600) {
       // Retry the specified number of times for possible serverside issues
-      if (request.retries === this.manager.client.options.retryLimit) {
+      if (request.retries >= this.manager.client.options.retryLimit) {
         // A literal, so the name stays 'Response' as it was with undici (impit's class is ImpitResponse)
         throw new HTTPError(res.statusText, 'Response', res.status, request);
       }

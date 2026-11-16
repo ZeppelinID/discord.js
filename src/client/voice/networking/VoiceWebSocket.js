@@ -5,6 +5,7 @@ const { setTimeout, setInterval } = require('node:timers');
 const WebSocket = require('../../../WebSocket');
 const { Error } = require('../../../errors');
 const { Opcodes, VoiceOpcodes } = require('../../../util/Constants');
+const Util = require('../../../util/Util');
 
 /**
  * Represents a Voice Connection's WebSocket.
@@ -91,9 +92,8 @@ class VoiceWebSocket extends EventEmitter {
    * @returns {Promise<string>}
    */
   send(data) {
-    this.emit('debug', `[WS] >> ${data}`);
     return new Promise((resolve, reject) => {
-      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) throw new Error('WS_NOT_OPEN', data);
+      if (!this.ws || this.ws.readyState !== WebSocket.OPEN) throw new Error('WS_NOT_OPEN', 'a packet');
       this.ws.send(data, null, error => {
         if (error) reject(error);
         else resolve(data);
@@ -107,8 +107,8 @@ class VoiceWebSocket extends EventEmitter {
    * @returns {Promise<string>}
    */
   async sendPacket(packet) {
-    packet = JSON.stringify(packet);
-    return this.send(packet);
+    this.emit('debug', `[WS] >> ${Util.redactedStringify(packet)}`);
+    return this.send(JSON.stringify(packet));
   }
 
   /**
@@ -167,7 +167,7 @@ class VoiceWebSocket extends EventEmitter {
    * @param {Object} packet The received packet
    */
   onPacket(packet) {
-    this.emit('debug', `[WS] << ${JSON.stringify(packet)}`);
+    this.emit('debug', `[WS] << ${Util.redactedStringify(packet)}`);
     if (packet.seq) this._sequenceNumber = packet.seq;
     switch (packet.op) {
       case VoiceOpcodes.HELLO:

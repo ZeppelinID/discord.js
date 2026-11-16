@@ -140,11 +140,17 @@ class Modal {
       nonce,
       session_id: this.client.sessionId,
     };
-    this.client.api.interactions.post({
+    const request = this.client.api.interactions.post({
       data: postData,
     });
     this.replied = true;
-    return Util.createPromiseInteraction(this.client, nonce, 5_000, true, this);
+    // A request that failed can be sent again
+    request.catch(() => {
+      this.replied = false;
+    });
+    return Promise.all([Util.createPromiseInteraction(this.client, nonce, 5_000, true, this), request]).then(
+      ([reply]) => reply,
+    );
   }
 
   // TypeScript

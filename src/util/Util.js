@@ -123,6 +123,16 @@ class Util extends null {
   }
 
   /**
+   * `JSON.stringify` for debug output: hides the account or voice `token` and the voice `secret_key`.
+   * @param {*} data The data to stringify
+   * @returns {string}
+   * @private
+   */
+  static redactedStringify(data) {
+    return JSON.stringify(data, (key, value) => (key === 'token' || key === 'secret_key' ? '[hidden]' : value));
+  }
+
+  /**
    * Options for splitting a message.
    * @typedef {Object} SplitOptions
    * @property {number} [maxLength=2000] Maximum character length per message piece

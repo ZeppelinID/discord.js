@@ -910,6 +910,13 @@ class Client extends BaseClient {
       // Convert to base32 if not already
       options.TOTPKey = options.TOTPKey.replace(/ +/g, '').toUpperCase();
     }
+    // Hidden like the token, so console.log(client) or JSON never shows the 2FA secret
+    Object.defineProperty(options, 'TOTPKey', {
+      value: options.TOTPKey,
+      writable: true,
+      enumerable: false,
+      configurable: true,
+    });
     // Hardcode
     this.options.shardCount = 1;
     this.options.shards = [0];
