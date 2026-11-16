@@ -2781,12 +2781,6 @@ export class Sweepers {
   public intervals: Record<SweeperKey, NodeJS.Timeout | null>;
   public options: SweeperOptions;
 
-  public sweepApplicationCommands(
-    filter: CollectionSweepFilter<
-      SweeperDefinitions['applicationCommands'][0],
-      SweeperDefinitions['applicationCommands'][1]
-    >,
-  ): number;
   public sweepBans(filter: CollectionSweepFilter<SweeperDefinitions['bans'][0], SweeperDefinitions['bans'][1]>): number;
   public sweepEmojis(
     filter: CollectionSweepFilter<SweeperDefinitions['emojis'][0], SweeperDefinitions['emojis'][1]>,
@@ -7076,7 +7070,6 @@ export interface LifetimeSweepOptions {
 }
 
 export interface SweeperDefinitions {
-  applicationCommands: [Snowflake, ApplicationCommand];
   autoModerationRules: [Snowflake, AutoModerationRule];
   bans: [Snowflake, GuildBan];
   emojis: [Snowflake, GuildEmoji];

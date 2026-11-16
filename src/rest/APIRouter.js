@@ -4,8 +4,9 @@ const { TypeError } = require('../errors');
 
 const noop = () => {}; // eslint-disable-line no-empty-function
 // A route part must stay one path segment. The HTTP client resolves "../" and "%2e%2e", so a part like
-// "../users/@me" taken from user text would call a different endpoint with the account token.
-const unsafeRoutePart = /^(?:\.|%2e){1,2}$|[/\\?#]|%2f|%5c/i;
+// "../users/@me" taken from user text would call a different endpoint with the account token. Whitespace and
+// control characters are refused too: the URL parser drops tabs and newlines and trims the end, so ".\t." is "..".
+const unsafeRoutePart = /^(?:\.|%2e){1,2}$|[/\\?#\s\p{Cc}]|%2f|%5c/iu;
 
 function checkRoutePart(part) {
   if (unsafeRoutePart.test(String(part))) throw new TypeError('INVALID_ROUTE_PART', part);

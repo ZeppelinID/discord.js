@@ -126,6 +126,8 @@ class WebSocketManager extends EventEmitter {
    * @private
    */
   async connect() {
+    // A new login, also one retried after a failed login (which destroys the client), may reconnect again
+    this.destroyed = false;
     let gatewayURL = 'wss://gateway.discord.gg';
     await this.client.api.gateway
       .get({ auth: false })
@@ -252,7 +254,8 @@ class WebSocketManager extends EventEmitter {
    * @returns {Promise<boolean>}
    */
   async reconnect() {
-    if (this.reconnecting || this.status !== Status.READY) return false;
+    // A destroyed manager stays down, even when a socket that never closed is later reported as a dead connection
+    if (this.reconnecting || this.destroyed || this.status !== Status.READY) return false;
     this.reconnecting = true;
     try {
       await this.createShards();

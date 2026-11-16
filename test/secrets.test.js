@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const { inspect } = require('node:util');
 const test = require('node:test');
-const { Client, Util } = require('../src');
+const { Client, DiscordAPIError, HTTPError, Util } = require('../src');
 const ClientVoiceManager = require('../src/client/voice/ClientVoiceManager');
 const WebSocketShard = require('../src/client/websocket/WebSocketShard');
 const VOICE_SERVER_UPDATE = require('../src/client/websocket/handlers/VOICE_SERVER_UPDATE');
@@ -63,4 +63,34 @@ test('voice server updates are logged without the voice token', () => {
 
   assert.equal(debug.length, 2);
   assert.ok(!debug.join('\n').includes('VOICE.TOKEN'), 'the voice token was logged');
+});
+
+test('a printed API error does not show the request body, which can hold the password', async t => {
+  const client = new Client({ retryLimit: 0 });
+  t.after(() => client.destroy());
+  client.token = TOKEN;
+  // A refused username change (DiscordAPIError), then a server error (HTTPError)
+  const answers = [{ status: 400, body: { code: 50035, message: 'Invalid Form Body' } }, { status: 500 }];
+  client.rest.fetch = async () => {
+    const { status, body } = answers.shift();
+    const type = body ? 'application/json' : null;
+    return {
+      ok: false,
+      status,
+      statusText: 'Error',
+      headers: { get: name => (name === 'content-type' ? type : null) },
+      json: async () => body,
+    };
+  };
+
+  for (const ErrorClass of [DiscordAPIError, HTTPError]) {
+    // The request client.user.setUsername(username, password) makes
+    const error = await client.api
+      .users('@me')
+      .patch({ data: { username: 'name', password: 'hunter2' } })
+      .catch(e => e);
+    assert.ok(error instanceof ErrorClass, `${error}`);
+    assert.ok(!inspect(error, { depth: 5 }).includes('hunter2'), `${ErrorClass.name} printed the password`);
+    assert.equal(error.requestData.json.password, 'hunter2'); // Code can still read it
+  }
 });

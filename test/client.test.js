@@ -4,10 +4,14 @@ const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const process = require('node:process');
 const { setImmediate } = require('node:timers');
+const { setTimeout: sleep } = require('node:timers/promises');
 const test = require('node:test');
 const { Client, Message } = require('../src');
+const WebSocket = require('../src/WebSocket');
 const VoiceConnection = require('../src/client/voice/VoiceConnection');
+const WebSocketShard = require('../src/client/websocket/WebSocketShard');
 const READY = require('../src/client/websocket/handlers/READY');
+const { Status, SweeperKeys } = require('../src/util/Constants');
 
 test('new Client(options) leaves the options object alone and shares nothing', async t => {
   const warnings = [];
@@ -191,5 +195,53 @@ test('READY subscribes to every guild exactly once, in at most two packets', () 
       data.guilds.map(guild => guild.id),
       `${count} guilds`,
     );
+  }
+});
+
+test('destroy() stays final when the socket never closes, and a new login clears it', async t => {
+  const created = [];
+  const { create } = WebSocket;
+  WebSocket.create = (...args) => {
+    created.push(args);
+    return { readyState: WebSocket.CONNECTING, close() {}, terminate() {} };
+  };
+  t.after(() => {
+    WebSocket.create = create;
+  });
+  const client = new Client({ closeTimeout: 10 });
+  t.after(() => client.destroy());
+  client.token = 'token';
+  const shard = new WebSocketShard(client.ws, 0);
+  // An open socket whose close handshake never completes, as when the network is gone
+  shard.connection = { readyState: WebSocket.OPEN, close() {}, terminate() {} };
+  shard.status = Status.READY;
+  client.ws.status = Status.READY;
+  client.ws.shardQueue = new Set([shard]);
+  await client.ws.createShards(); // Attaches the listeners that reconnect
+
+  client.destroy();
+  await sleep(50); // Longer than closeTimeout, after which the socket counts as a dead connection
+  assert.equal(created.length, 0, 'destroy() was followed by a new gateway socket');
+
+  // A new login: only the reset matters here, so the gateway lookup and the shards are stubbed
+  client.rest.fetch = async () => ({
+    ok: true,
+    status: 200,
+    headers: { get: name => (name === 'content-type' ? 'application/json' : null) },
+    json: async () => ({ url: 'wss://gateway.example' }),
+  });
+  client.ws.createShards = async () => true;
+  await client.ws.connect();
+  assert.equal(client.isReady(), true);
+});
+
+test('every sweeper can run on a cached guild', t => {
+  const client = new Client();
+  t.after(() => client.destroy());
+  client.guilds._add({ id: '123456789012345678', name: 'guild', channels: [], roles: [], members: [], emojis: [] });
+  for (const key of SweeperKeys) {
+    // The sweeper timers call these, and a throw there ends the process
+    const sweep = `sweep${key[0].toUpperCase()}${key.slice(1)}`;
+    assert.doesNotThrow(() => client.sweepers[sweep](() => false), key);
   }
 });

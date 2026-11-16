@@ -49,13 +49,18 @@ class HTTPError extends Error {
 
     /**
      * The data associated with the request that caused this error
+     * <info>Not enumerable, so a printed error does not show the request body, which can hold a password</info>
      * @type {HTTPErrorData}
+     * @name HTTPError#requestData
      */
-    this.requestData = {
-      json: request.options.data,
-      files: request.options.files ?? [],
-      headers: request.options.headers,
-    };
+    Object.defineProperty(this, 'requestData', {
+      value: {
+        json: request.options.data,
+        files: request.options.files ?? [],
+        headers: request.options.headers,
+      },
+      writable: true,
+    });
   }
 }
 

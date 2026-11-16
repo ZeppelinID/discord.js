@@ -806,7 +806,6 @@ exports.MessageReferenceTypes = createEnum([
 
 /**
  * The name of an item to be swept in Sweepers
- * * `applicationCommands` - both global and guild commands
  * * `autoModerationRules`
  * * `bans`
  * * `emojis`
@@ -824,7 +823,6 @@ exports.MessageReferenceTypes = createEnum([
  * @typedef {string} SweeperKey
  */
 exports.SweeperKeys = [
-  'applicationCommands',
   'autoModerationRules',
   'bans',
   'emojis',

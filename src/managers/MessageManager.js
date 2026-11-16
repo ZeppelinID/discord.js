@@ -148,8 +148,11 @@ class MessageManager extends CachedManager {
     });
     const attachmentsData = await Promise.all(requestPromises);
     attachmentsData.sort((a, b) => parseInt(a.id) - parseInt(b.id));
-    data.attachments = attachmentsData;
-    // Empty Files
+    // Discord keeps only the files listed here, so the list changes only when files were uploaded:
+    // their placeholders come last in the payload and are swapped for the uploads
+    if (attachmentsData.length) {
+      data.attachments = [...data.attachments.slice(0, -attachmentsData.length), ...attachmentsData];
+    }
 
     const d = await this.client.api.channels[this.channel.id].messages[messageId].patch({ data });
 
@@ -243,7 +246,7 @@ class MessageManager extends CachedManager {
     await this.client.api.channels(this.channel.id).messages(message).delete();
   }
 
-  _fetchId(messageId, cache, force) {
+  async _fetchId(messageId, cache, force) {
     if (!force) {
       const existing = this.cache.get(messageId);
       if (existing && !existing.partial) return existing;
@@ -417,7 +420,7 @@ class MessageManager extends CachedManager {
    * @returns {Promise<Collection<Snowflake, User>>}
    */
   async fetchPollAnswerVoters({ messageId, answerId, after, limit }) {
-    const voters = await this.client.channels(this.channel.id).polls(messageId).answers(answerId).get({
+    const voters = await this.client.api.channels(this.channel.id).polls(messageId).answers(answerId).get({
       query: { limit, after },
     });
 
