@@ -42,7 +42,7 @@
 npm install @zeppelinid/discord.js
 ```
 
-- Requires **Node.js 26.13.1** or newer.
+- Requires **Node.js 24** or newer.
 - TypeScript users also need `@types/node`.
 
 ### 🧰 Optional packages

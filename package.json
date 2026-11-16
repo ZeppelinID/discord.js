@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.js\" \"typings/**/*.ts\"",
-    "test": "node --test",
+    "test": "node --test --test-timeout=10000",
     "build": "npm run lint:fix && npm run format && npm run test:typings && npm test",
     "test:typings": "tsc --noEmit --skipLibCheck false"
   },
@@ -58,7 +58,7 @@
     "ws": "^8.23.0"
   },
   "engines": {
-    "node": ">=26.13.1"
+    "node": ">=24"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
